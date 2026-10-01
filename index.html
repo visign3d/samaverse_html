@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Primary Meta Tags -->
+    <title>Samaversum | A Painting Project by Viktor Kadza Jr.</title>
+    <meta name="title" content="Samaversum | A Painting Project by Viktor Kadza Jr.">
+    <meta name="description" content="Samaversum is a painting project exploring the spontaneous formation of pseudo-life forms like Boltzmann Brains with fake memories inside an imaginary universe created by Viktor Kadza Jr.">
+    <meta name="keywords" content="Samaversum, Viktor Kadza Jr, Boltzmann Brain, Digital Art, Painting, Quantum Fluctuations, Pseudo Life Forms, Art Gallery, samaversum.com">
+    <meta name="author" content="Viktor Kadza Jr.">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://www.samaversum.com/">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://www.samaversum.com/">
+    <meta property="og:title" content="Samaversum | A Painting Project by Viktor Kadza Jr.">
+    <meta property="og:description" content="Samaversum explores the spontaneous formation of pseudo-life forms like Boltzmann Brains with fake memories within an imaginary universe.">
+    <meta property="og:image" content="https://www.samaversum.com/favicon.png">
+
+    <link rel="stylesheet" href="./tailwind.css">
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;300;400;600;800&family=JetBrains+Mono:wght@300;500&display=swap');
+
+        body {
+            background-color: #050505;
+            color: #ffffff;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+        }
+
+        .accent-red { color: #E60023; }
+        .bg-accent-red { background-color: #E60023; }
+        .headline-accent { color: #A80020; }
+
+        #slideshowModal {
+            backdrop-filter: blur(40px);
+            background: rgba(0, 0, 0, 0.95);
+        }
+
+        .stage-backdrop {
+            background: radial-gradient(circle at center, rgba(230, 0, 35, 0.05) 0%, transparent 70%);
+        }
+
+        .pro-image {
+            box-shadow: 0 50px 100px -20px rgba(0, 0, 0, 0.8), 0 30px 60px -30px rgba(230, 0, 35, 0.1);
+            transition: all 0.8s cubic-bezier(0.2, 1, 0.3, 1);
+            filter: brightness(0.9);
+        }
+
+        .pro-image:hover {
+            filter: brightness(1);
+            transform: scale(1.02) !important;
+        }
+
+        .thumb-strip {
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        .thumb-strip::-webkit-scrollbar { display: none; }
+
+        .thumb-item {
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            filter: grayscale(100%) opacity(0.3);
+            border: 2px solid transparent;
+        }
+        .thumb-item.active {
+            filter: grayscale(0%) opacity(1);
+            border-color: #E60023;
+            transform: scale(1.1) translateY(-4px);
+            box-shadow: 0 10px 20px -5px rgba(230, 0, 35, 0.3);
+        }
+
+        .progress-bar-container {
+            height: 1px;
+            background: rgba(255, 255, 255, 0.05);
+            width: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 50;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: #E60023;
+            width: 0%;
+            transition: width linear;
+            box-shadow: 0 0 10px #E60023;
+        }
+
+        .glass-panel {
+            background: rgba(15, 15, 15, 0.7);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.03);
+        }
+
+        .ken-burns {
+            animation: kenburns 20s infinite alternate;
+        }
+
+        @keyframes kenburns {
+            from { transform: scale(1) translate(0, 0); }
+            to { transform: scale(1.1) translate(-1%, -1%); }
+        }
+
+        .metadata-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            letter-spacing: 0.2em;
+            color: rgba(255, 255, 255, 0.3);
+            text-transform: uppercase;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .artwork-grid-item {
+            transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .artwork-grid-item:hover {
+            transform: translateY(-12px);
+            box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.7);
+        }
+    </style>
+</head>
+<body class="antialiased selection:bg-red-600/30">
+    <nav class="sticky top-0 z-[60] glass-panel px-8 py-5 flex justify-between items-center">
+        <div class="flex items-center gap-6">
+            <h1 onclick="window.scrollTo({top: 0, behavior: 'smooth'})" class="text-2xl font-black tracking-tighter flex items-center gap-2 cursor-pointer">
+                <span class="bg-accent-red text-white p-1 rounded-sm text-sm">S</span> SAMAVERSUM
+            </h1>
+        </div>
+        <div class="flex gap-4 items-center">
+            <button onclick="showContact()" class="text-xs font-bold tracking-widest text-gray-400 hover:text-white transition-colors mr-4">INQUIRE</button>
+        </div>
+    </nav>
+
+    <main class="max-w-[1800px] mx-auto p-8 lg:p-20">
+        <header class="mb-32 max-w-5xl">
+            <div class="flex items-center gap-4 mb-8">
+                <div class="w-12 h-[1px] bg-accent-red"></div>
+                <div class="text-[10px] font-bold text-accent-red tracking-[0.4em] uppercase">A painting project by Viktor Kadza Jr.</div>
+            </div>
+            <h2 class="text-5xl lg:text-8xl font-light mb-12 leading-[1] tracking-tight text-white">
+                <span class="font-extralight text-gray-600">Boltzmann Brain:</span><br>
+                <span class="headline-accent italic">Pseudo Life</span> in <span class="text-white">Samaversum</span>
+            </h2>
+        </header>
+
+        <div id="loading" class="flex justify-center items-center py-40">
+            <div class="w-8 h-8 border border-white/10 border-t-accent-red rounded-full animate-spin"></div>
+        </div>
+
+        <div id="galleryGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 gap-10"></div>
+    </main>
+
+    <footer class="border-t border-white/10">
+        <div class="max-w-[1800px] mx-auto px-8 py-12 lg:px-20 grid gap-10 sm:grid-cols-2">
+            <div>
+                <span class="metadata-label">Project Note</span>
+                <p class="max-w-xl text-sm leading-relaxed text-gray-400">Samaversum is a speculative painting project exploring pseudo-life, memory, and artificial selfhood inside an imagined universe.</p>
+            </div>
+            <div>
+                <span class="metadata-label">Archive Note</span>
+                <p class="max-w-xl text-sm leading-relaxed text-gray-400">Artwork descriptions and metadata are presented as part of an evolving visual archive.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- PRO PRESENTATION WIDGET -->
+    <div id="slideshowModal" class="fixed inset-0 z-[100] hidden flex-col transition-all duration-700">
+        <div class="progress-bar-container"><div id="progressBar" class="progress-bar"></div></div>
+
+        <div class="flex justify-between items-center px-10 py-8 z-[110]">
+            <div class="flex items-center gap-6">
+                <div id="slideCounter" class="text-[10px] font-mono tracking-widest text-gray-500">01 / 00</div>
+                <div class="h-4 w-[1px] bg-white/10"></div>
+                <button onclick="togglePlayPause()" class="group flex items-center gap-3 text-[10px] font-bold tracking-widest text-white/50 hover:text-white transition-all">
+                    <span id="playStateIcon" class="text-accent-red">
+                        <svg id="playIcon" class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                        <svg id="pauseIcon" class="hidden w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h4z"/></svg>
+                    </span>
+                    <span id="playStateText">AUTOPLAY ON</span>
+                </button>
+            </div>
+            <div class="flex items-center gap-2">
+                <button onclick="toggleFullscreen()" class="p-3 hover:bg-accent-red/10 rounded-full text-white transition-all" aria-label="Toggle fullscreen">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 3H3v5M21 8V3h-5M3 16v5h5M16 21h5v-5"></path></svg>
+                </button>
+                <button onclick="closeSlideshow()" class="p-3 hover:bg-accent-red/10 rounded-full text-white transition-all">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+        </div>
+
+        <div class="flex-1 flex flex-col lg:flex-row min-h-0 relative stage-backdrop">
+            <div class="flex-[3] relative flex items-center justify-center p-4 pl-12 lg:p-8 lg:pl-16 overflow-hidden">
+                <div class="slideshow-image-container w-full h-full flex items-center justify-center">
+                    <img id="slideshowImage" src="" class="pro-image max-h-full max-w-full object-contain" alt="Current Piece">
+                </div>
+                <button onclick="prevSlide()" class="absolute left-8 p-6 group transition-all">
+                    <svg class="w-10 h-10 text-white/20 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 19l-7-7 7-7"></path></svg>
+                </button>
+                <button onclick="nextSlide()" class="absolute right-8 p-6 group transition-all">
+                    <svg class="w-10 h-10 text-white/20 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5l7 7-7 7"></path></svg>
+                </button>
+            </div>
+
+            <div id="proMetaPanel" class="flex-1 glass-panel border-l border-white/5 p-16 flex flex-col justify-center overflow-y-auto">
+                <div class="max-w-md mx-auto w-full space-y-10">
+                    <div class="space-y-4">
+                        <span id="proArtist" class="text-accent-red text-[10px] font-black tracking-[0.4em] uppercase"></span>
+                        <h2 id="proTitle" class="text-5xl font-extralight tracking-tighter leading-tight text-white"></h2>
+                        <div id="proDate" class="text-[10px] font-mono text-gray-500 uppercase tracking-widest"></div>
+                    </div>
+
+                    <div class="space-y-6 py-8 border-y border-white/5">
+                        <div class="grid grid-cols-2 gap-8">
+                            <div><span class="metadata-label">Physical Medium</span><span id="proMedium" class="text-sm text-gray-200 font-light"></span></div>
+                            <div><span class="metadata-label">Surface Layer</span><span id="proSurface" class="text-sm text-gray-200 font-light"></span></div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-8">
+                            <div><span class="metadata-label">Dimensions (MM)</span><span id="proDimensions" class="text-sm font-mono text-gray-300"></span></div>
+                            <div><span class="metadata-label">Archive Ref</span><span id="proId" class="text-sm font-mono text-gray-500 uppercase"></span></div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4">
+                        <span class="metadata-label text-accent-red/50">Research Notes</span>
+                        <p id="proDesc" class="text-lg text-gray-400 font-light leading-relaxed italic"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="h-32 glass-panel border-t border-white/5 px-10 flex items-center">
+            <div id="thumbStrip" class="thumb-strip flex gap-6 overflow-x-auto w-full py-4 items-center"></div>
+        </div>
+    </div>
+
+    <div id="contactModal" class="fixed inset-0 z-[200] bg-black/90 hidden items-center justify-center p-8 backdrop-blur-3xl transition-all duration-500">
+        <div class="bg-[#0a0a0a] w-full max-w-2xl rounded-[40px] p-16 shadow-2xl border border-white/5 relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-1 bg-accent-red"></div>
+            <button onclick="closeContact()" class="absolute top-8 right-8 text-gray-600 hover:text-white transition-colors">&times;</button>
+            <h2 class="text-4xl font-light tracking-tighter mb-4 text-white">Send message</h2>
+            <form class="space-y-6" onsubmit="event.preventDefault(); sendEmail();">
+                <input type="text" id="contactName" placeholder="Researcher Name" required class="w-full bg-white/[0.02] border border-white/10 rounded-2xl p-5 text-white outline-none">
+                <input type="email" id="contactEmail" placeholder="Email" required class="w-full bg-white/[0.02] border border-white/10 rounded-2xl p-5 text-white outline-none">
+                <textarea id="contactMessage" placeholder="Message..." required rows="4" class="w-full bg-white/[0.02] border border-white/10 rounded-2xl p-5 text-white outline-none"></textarea>
+                <button type="submit" class="w-full bg-white text-black py-6 rounded-2xl text-[10px] font-black tracking-[0.4em] uppercase hover:bg-accent-red hover:text-white transition-all">DISPATCH SIGNAL</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="./index.js"></script>
+</body>
+</html>
