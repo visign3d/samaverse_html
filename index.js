@@ -81,6 +81,81 @@ function getArtworkDetails(art) {
     return descriptions[artId] || Object.values(descriptions).find(d => String(d.artwork_id ?? d.artworkId) === artId) || null;
 }
 
+function normalizeTagValue(rawValue) {
+    if (rawValue === null || rawValue === undefined) return [];
+
+    if (Array.isArray(rawValue)) {
+        return rawValue.flatMap(item => normalizeTagValue(item));
+    }
+
+    if (typeof rawValue === 'object') {
+        if (Array.isArray(rawValue.tags)) return rawValue.tags.flatMap(item => normalizeTagValue(item));
+        if (Array.isArray(rawValue.tag_list)) return rawValue.tag_list.flatMap(item => normalizeTagValue(item));
+        if (Array.isArray(rawValue.keywords)) return rawValue.keywords.flatMap(item => normalizeTagValue(item));
+        if (Array.isArray(rawValue.metadata?.tags)) return rawValue.metadata.tags.flatMap(item => normalizeTagValue(item));
+        if (typeof rawValue.value === 'string') return normalizeTagValue(rawValue.value);
+        return [];
+    }
+
+    const text = String(rawValue).trim();
+    if (!text) return [];
+
+    return text
+        .split(/[|,;\n]+/)
+        .map(item => item.trim())
+        .filter(Boolean)
+        .map(item => item.replace(/^['\"]|['\"]$/g, ''));
+}
+
+function getArtworkTags(art) {
+    const detail = getArtworkDetails(art);
+    const source = [art, detail, art?.metadata, detail?.metadata];
+    const collected = [];
+
+    source.forEach(item => {
+        if (!item) return;
+
+        const candidates = [
+            item.tags,
+            item.tag_list,
+            item.keywords,
+            item.tags_json,
+            item.metadata?.tags,
+            item.metadata?.tag_list,
+            item.metadata?.keywords,
+            item.description_tags,
+            item.series_tags
+        ];
+
+        candidates.forEach(candidate => {
+            collected.push(...normalizeTagValue(candidate));
+        });
+    });
+
+    const deduped = [...new Set(collected.map(tag => tag.toLowerCase().replace(/\s+/g, '-')))].filter(Boolean);
+    return deduped.length ? deduped : [
+        String(art?.series || art?.category || art?.collection || 'samaversum').toLowerCase().replace(/\s+/g, '-'),
+        'artwork',
+        'archive'
+    ];
+}
+
+function renderTagChips(tags) {
+    const tagContainer = document.getElementById('proTags');
+    if (!tagContainer) return;
+
+    const safeTags = Array.isArray(tags) ? tags : [];
+    if (!safeTags.length) {
+        tagContainer.innerHTML = '<span class="text-xs text-gray-500 font-mono uppercase tracking-[0.2em]">No tags</span>';
+        return;
+    }
+
+    tagContainer.innerHTML = safeTags
+        .slice(0, 12)
+        .map(tag => `<span class="inline-flex items-center rounded-full border border-white/10 bg-white/[0.02] px-3 py-1 text-[10px] font-mono uppercase tracking-[0.2em] text-gray-300">${tag}</span>`)
+        .join('');
+}
+
 async function init() {
     const loading = document.getElementById('loading');
     if (loading) loading.classList.remove('hidden');
@@ -211,6 +286,7 @@ function updateSlideshow() {
 
     const artId = String(art.id ?? '');
     const d = getArtworkDetails(art);
+    renderTagChips(getArtworkTags(art));
 
     img.style.opacity = '0';
     img.style.transform = 'scale(0.98)';
