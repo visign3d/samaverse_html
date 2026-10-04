@@ -322,11 +322,15 @@ async function init() {
 
         artworks = (paintData || [])
             .map(row => {
+                const artId = String(getFirstDefinedValue(row, ['id', 'artwork_id']) || '');
+                const medium = normalizeMediumValue(getFirstDefinedValue(row, ['medium']) || 'image');
                 const imageSource = getFirstDefinedValue(row, ['image_art_url', 'image_url', 'image_large', 'url', 'image', 'path', 'file_name']);
                 const imageUrl = resolveArtworkImageUrl(imageSource);
-                if (!imageUrl) return null;
 
-                const artId = String(getFirstDefinedValue(row, ['id', 'artwork_id']) || '');
+                if (!imageUrl && medium !== 'text') {
+                    return null;
+                }
+
                 return {
                     ...row,
                     id: artId,
@@ -334,7 +338,7 @@ async function init() {
                     description: getFirstDefinedValue(row, ['description', 'description_text']) || '',
                     imageUrl,
                     artist: getFirstDefinedValue(row, ['artist']) || row?.artist || 'SAMACORP',
-                    medium: getFirstDefinedValue(row, ['medium']) || 'image'
+                    medium
                 };
             })
             .filter(Boolean);
@@ -366,13 +370,13 @@ function renderUI() {
         const materialText = d?.medium || art.medium || 'Theory';
         const isText = isTextArtwork(art);
         const mediaMarkup = isText
-            ? `<div class="absolute inset-0 z-10 flex items-center justify-center p-6 bg-[#111111] text-left"><div class="relative z-20 w-full max-w-[90%] markdown-content font-light leading-[0.82] tracking-[-0.06em] text-white/95 text-2xl sm:text-3xl lg:text-4xl">${renderMarkdown(getArtworkTextContent(art))}</div></div>`
+            ? `<div class="absolute inset-0 z-10 flex items-center justify-center p-6 bg-[#111111] text-left"><div class="relative z-30 w-full max-w-[90%] markdown-content font-light leading-[0.82] tracking-[-0.06em] text-white/95 text-2xl sm:text-3xl lg:text-4xl">${renderMarkdown(getArtworkTextContent(art))}</div></div>`
             : `<img src="${art.imageUrl}" class="w-full h-full object-cover grayscale-[0.2] group-hover:grayscale-0 transition-all duration-1000" loading="lazy">`;
 
         return `
         <div onclick="openSlideshow(${idx})" class="artwork-grid-item group cursor-pointer relative aspect-[3/4] bg-[#0f0f0f] rounded-2xl overflow-hidden border border-white/5">
             ${mediaMarkup}
-            <div class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-80 group-hover:opacity-40 transition-opacity"></div>
+            <div class="absolute inset-0 z-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-80 group-hover:opacity-40 transition-opacity"></div>
             <div class="absolute inset-x-0 bottom-0 p-8 flex flex-col justify-end translate-y-6 group-hover:translate-y-0 transition-transform duration-700">
                 <span class="text-[9px] font-black text-accent-red tracking-[0.3em] uppercase mb-2">${artistText}</span>
                 <h3 class="text-lg font-light text-white tracking-tighter mb-4">${titleText}</h3>
