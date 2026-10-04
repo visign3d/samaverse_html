@@ -74,11 +74,120 @@ function resolveArtworkImageUrl(value) {
     return data?.publicUrl || '';
 }
 
+function normalizeMediumValue(value) {
+    return String(value ?? '').trim().toLowerCase();
+}
+
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function renderMarkdown(value) {
+    const text = String(value ?? '').trim();
+    if (!text) return '';
+
+    const lines = text.split(/\n/);
+    let html = '';
+    let paragraph = [];
+    let listItems = [];
+
+    const flushParagraph = () => {
+        if (!paragraph.length) return;
+        html += `<p>${paragraph.join('<br>')}</p>`;
+        paragraph = [];
+    };
+
+    const flushList = () => {
+        if (!listItems.length) return;
+        html += `<ul>${listItems.map(item => `<li>${item}</li>`).join('')}</ul>`;
+        listItems = [];
+    };
+
+    const renderInline = (segment) => {
+        let output = escapeHtml(segment);
+        output = output.replace(/`([^`]+)`/g, '<code>$1</code>');
+        output = output.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+        output = output.replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, '<em>$1</em>');
+        output = output.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+        return output;
+    };
+
+    for (const rawLine of lines) {
+        const line = rawLine.trim();
+
+        const headingMatch = line.match(/^(#{1,6})\s+(.*)$/);
+        if (headingMatch) {
+            flushParagraph();
+            flushList();
+            const level = headingMatch[1].length;
+            html += `<h${level}>${renderInline(headingMatch[2])}</h${level}>`;
+            continue;
+        }
+
+        if (/^[-*]\s+/.test(line)) {
+            flushParagraph();
+            listItems.push(renderInline(line.replace(/^[-*]\s+/, '')));
+            continue;
+        }
+
+        if (!line) {
+            flushParagraph();
+            flushList();
+            continue;
+        }
+
+        paragraph.push(renderInline(line));
+    }
+
+    flushParagraph();
+    flushList();
+    return html;
+}
+
+function getFirstDefinedValue(row, keys) {
+    if (!row || typeof row !== 'object') return '';
+
+    for (const key of keys) {
+        const value = row[key];
+        if (value === undefined || value === null) continue;
+        const text = String(value).trim();
+        if (text) return value;
+    }
+
+    return '';
+}
+
 function getArtworkDetails(art) {
     if (!art) return null;
     const artId = String(art.id ?? art.artwork_id ?? '');
     if (!artId) return null;
     return descriptions[artId] || Object.values(descriptions).find(d => String(d.artwork_id ?? d.artworkId) === artId) || null;
+}
+
+function getArtworkMedium(art) {
+    const detail = getArtworkDetails(art);
+    return normalizeMediumValue(art?.medium ?? detail?.medium ?? art?.metadata?.medium ?? 'image');
+}
+
+function isTextArtwork(art) {
+    return getArtworkMedium(art) === 'text';
+}
+
+function getArtworkTextContent(art) {
+    const detail = getArtworkDetails(art);
+    return String(
+        detail?.description_text ||
+        art?.text_art ||
+        art?.textArt ||
+        detail?.artwork_name ||
+        art?.title ||
+        'Untitled'
+    );
 }
 
 function normalizeTagValue(rawValue) {
@@ -166,26 +275,66 @@ async function init() {
             return;
         }
 
-        const { data: paintData } = await supabaseClient.from('painting').select('*');
-        const { data: descData } = await supabaseClient.from('artwork_description').select('*');
+        const tableCandidates = ['artwork', 'painting'];
+        const descriptionTableCandidates = ['artwork_description', 'painting_description'];
 
-        if (descData) {
+        let paintData = [];
+        for (const tableName of tableCandidates) {
+            try {
+                const { data, error } = await supabaseClient.from(tableName).select('*');
+                if (error) {
+                    console.warn(`Unable to query ${tableName}:`, error.message || error);
+                    continue;
+                }
+                if (Array.isArray(data) && data.length) {
+                    paintData = data;
+                    break;
+                }
+            } catch (err) {
+                console.warn(`Table ${tableName} not available:`, err);
+            }
+        }
+
+        let descData = [];
+        for (const tableName of descriptionTableCandidates) {
+            try {
+                const { data, error } = await supabaseClient.from(tableName).select('*');
+                if (error) {
+                    console.warn(`Unable to query ${tableName}:`, error.message || error);
+                    continue;
+                }
+                if (Array.isArray(data) && data.length) {
+                    descData = data;
+                    break;
+                }
+            } catch (err) {
+                console.warn(`Description table ${tableName} not available:`, err);
+            }
+        }
+
+        if (descData.length) {
             descriptions = {};
-            descData.forEach(d => { descriptions[String(d.artwork_id)] = d; });
+            descData.forEach(d => {
+                const key = String(d.artwork_id ?? d.artworkId ?? d.id ?? '');
+                if (key) descriptions[key] = d;
+            });
         }
 
         artworks = (paintData || [])
             .map(row => {
-                const imageUrl = resolveArtworkImageUrl(
-                    row.image_url || row.image_large || row.url || row.image || row.path || row.file_name || ''
-                );
+                const imageSource = getFirstDefinedValue(row, ['image_art_url', 'image_url', 'image_large', 'url', 'image', 'path', 'file_name']);
+                const imageUrl = resolveArtworkImageUrl(imageSource);
                 if (!imageUrl) return null;
+
+                const artId = String(getFirstDefinedValue(row, ['id', 'artwork_id']) || '');
                 return {
                     ...row,
-                    id: String(row.id ?? row.artwork_id ?? ''),
-                    title: row.title || row.artwork_name || 'Untitled',
-                    description: row.description || '',
-                    imageUrl
+                    id: artId,
+                    title: getFirstDefinedValue(row, ['title', 'artwork_name']) || 'Untitled',
+                    description: getFirstDefinedValue(row, ['description', 'description_text']) || '',
+                    imageUrl,
+                    artist: getFirstDefinedValue(row, ['artist']) || row?.artist || 'SAMACORP',
+                    medium: getFirstDefinedValue(row, ['medium']) || 'image'
                 };
             })
             .filter(Boolean);
@@ -214,16 +363,21 @@ function renderUI() {
         const titleText = d?.artwork_name || art.title || 'Untitled';
         const artistText = d?.artist || art.artist || 'SAMACORP';
         const summaryText = d?.description_text || d?.description || art.description || '';
-        const materialText = d?.medium || 'Theory';
+        const materialText = d?.medium || art.medium || 'Theory';
+        const isText = isTextArtwork(art);
+        const mediaMarkup = isText
+            ? `<div class="absolute inset-0 z-10 flex items-center justify-center p-6 bg-[#111111] text-left"><div class="relative z-20 w-full max-w-[90%] markdown-content font-light leading-[0.82] tracking-[-0.06em] text-white/95 text-2xl sm:text-3xl lg:text-4xl">${renderMarkdown(getArtworkTextContent(art))}</div></div>`
+            : `<img src="${art.imageUrl}" class="w-full h-full object-cover grayscale-[0.2] group-hover:grayscale-0 transition-all duration-1000" loading="lazy">`;
+
         return `
         <div onclick="openSlideshow(${idx})" class="artwork-grid-item group cursor-pointer relative aspect-[3/4] bg-[#0f0f0f] rounded-2xl overflow-hidden border border-white/5">
-            <img src="${art.imageUrl}" class="w-full h-full object-cover grayscale-[0.2] group-hover:grayscale-0 transition-all duration-1000" loading="lazy">
+            ${mediaMarkup}
             <div class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-80 group-hover:opacity-40 transition-opacity"></div>
             <div class="absolute inset-x-0 bottom-0 p-8 flex flex-col justify-end translate-y-6 group-hover:translate-y-0 transition-transform duration-700">
                 <span class="text-[9px] font-black text-accent-red tracking-[0.3em] uppercase mb-2">${artistText}</span>
                 <h3 class="text-lg font-light text-white tracking-tighter mb-4">${titleText}</h3>
                 <div class="opacity-0 group-hover:opacity-100 transition-opacity duration-700">
-                    <p class="text-xs text-gray-500 font-light leading-relaxed line-clamp-2 italic mb-4">${summaryText}</p>
+                    <p class="text-xs text-gray-500 font-light leading-relaxed line-clamp-2 italic mb-4">${escapeHtml(summaryText)}</p>
                     <div class="text-[9px] font-mono text-gray-600 uppercase tracking-widest">${dateYear ? dateYear + ' / ' : ''}${materialText}</div>
                 </div>
             </div>
@@ -234,10 +388,20 @@ function renderUI() {
     const strip = document.getElementById('thumbStrip');
     if (!strip) return;
 
-    strip.innerHTML = artworks.map((art, idx) => `
-        <img onclick="goToSlide(${idx})" id="thumb-${idx}" src="${art.imageUrl}"
-             class="thumb-item h-20 w-20 object-cover rounded-2xl cursor-pointer flex-shrink-0">
-    `).join('');
+    strip.innerHTML = artworks.map((art, idx) => {
+        if (isTextArtwork(art)) {
+            return `
+                <div onclick="goToSlide(${idx})" id="thumb-${idx}" class="thumb-item h-20 w-20 rounded-2xl cursor-pointer flex-shrink-0 border border-white/10 bg-[#101010] flex items-center justify-center p-2 text-center">
+                    <span class="text-[9px] font-mono uppercase tracking-[0.2em] text-white/80 leading-tight">${escapeHtml((art.title || 'Text').slice(0, 12))}</span>
+                </div>
+            `;
+        }
+
+        return `
+            <img onclick="goToSlide(${idx})" id="thumb-${idx}" src="${art.imageUrl}"
+                 class="thumb-item h-20 w-20 object-cover rounded-2xl cursor-pointer flex-shrink-0">
+        `;
+    }).join('');
 }
 
 function openSlideshow(index) {
@@ -281,17 +445,50 @@ function toggleFullscreen() {
 function updateSlideshow() {
     const art = artworks[currentIndex];
     const img = document.getElementById('slideshowImage');
-    if (!art || !img) return;
+    const textDisplay = document.getElementById('slideshowText');
+    if (!art || !img || !textDisplay) return;
     saveSlideshowState();
 
     const artId = String(art.id ?? '');
     const d = getArtworkDetails(art);
     renderTagChips(getArtworkTags(art));
 
-    img.style.opacity = '0';
-    img.style.transform = 'scale(0.98)';
+    const isText = isTextArtwork(art);
+    const contentText = getArtworkTextContent(art);
+    const textNode = textDisplay.querySelector('div');
+
+    if (isText) {
+        img.classList.add('hidden');
+        img.style.opacity = '0';
+        img.style.transform = 'scale(0.98)';
+        textDisplay.classList.remove('hidden');
+        if (textNode) textNode.innerHTML = renderMarkdown(contentText);
+    } else {
+        textDisplay.classList.add('hidden');
+        img.classList.remove('hidden');
+        img.style.opacity = '0';
+        img.style.transform = 'scale(0.98)';
+    }
 
     setTimeout(() => {
+        if (isText) {
+            if (textNode) textNode.innerHTML = renderMarkdown(contentText);
+            document.getElementById('slideCounter').textContent = `${(currentIndex + 1).toString().padStart(2, '0')} / ${artworks.length.toString().padStart(2, '0')}`;
+            document.getElementById('proTitle').textContent = d ? (d.artwork_name || art.title) : art.title;
+            document.getElementById('proArtist').textContent = d ? (d.artist || 'Viktor Kadza Jr.') : 'Viktor Kadza Jr.';
+            document.getElementById('proDate').textContent = d?.made_date ? new Date(d.made_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '';
+            document.getElementById('proMedium').textContent = d ? (d.medium || 'Research Medium') : 'Research Medium';
+            document.getElementById('proSurface').textContent = d ? (d.surface || 'Surface Theory') : 'Surface Theory';
+            document.getElementById('proDimensions').textContent = d ? `${d.width_mm}w * ${d.height_mm}h mm` : 'Variable';
+            document.getElementById('proId').textContent = artId.substring(0, 8).toUpperCase();
+            document.getElementById('proDesc').textContent = d ? (d.description_text || art.description || 'Metadata pending archival verification.') : (art.description || 'Metadata pending archival verification.');
+            document.querySelectorAll('.thumb-item').forEach(t => t.classList.remove('active'));
+            const t = document.getElementById(`thumb-${currentIndex}`);
+            if (t) { t.classList.add('active'); t.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' }); }
+            if (isAutoplay) resetProgressBar();
+            return;
+        }
+
         img.onerror = () => {
             img.style.opacity = '1';
             img.style.transform = 'scale(1)';
