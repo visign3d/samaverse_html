@@ -361,7 +361,10 @@ function renderUI() {
             : `<img src="${art.imageUrl}" class="w-full h-full object-cover grayscale-[0.2] group-hover:grayscale-0 transition-all duration-1000" loading="lazy">`;
 
         return `
-        <div id="grid-item-${idx}" onclick="openSlideshow(${idx})" class="artwork-grid-item group cursor-pointer relative aspect-[3/4] bg-[#0f0f0f] rounded-2xl overflow-hidden border border-white/5">
+        <div id="grid-item-${idx}"
+             onmouseenter="setGridFocus(${idx})"
+             onclick="openSlideshow(${idx})"
+             class="artwork-grid-item group cursor-pointer relative aspect-[3/4] bg-[#0f0f0f] rounded-2xl overflow-hidden border border-white/5">
             ${mediaMarkup}
             <div class="absolute inset-0 z-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-80 group-hover:opacity-40 transition-opacity"></div>
             <div class="absolute inset-x-0 bottom-0 p-8 flex flex-col justify-end translate-y-6 group-hover:translate-y-0 transition-transform duration-700">
@@ -674,6 +677,10 @@ function initGamepadSupport() {
         console.log("Gamepad connected:", e.gamepad.id);
         if (!gamepadLoopId) gamepadLoop();
     });
+
+    // Check if already connected
+    const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+    if (gamepads[0] && !gamepadLoopId) gamepadLoop();
 }
 
 function gamepadLoop() {
@@ -727,7 +734,7 @@ function gamepadLoop() {
                 if (artworks.length > 0) openSlideshow(selectedGridIndex);
             });
 
-            // LB / RB: Fast Navigation
+            // LB / RB: Navigation
             handleGamepadButton(gp, 4, () => moveGridFocus(-1)); // LB
             handleGamepadButton(gp, 5, () => moveGridFocus(1));  // RB
 
@@ -772,6 +779,11 @@ function handleGamepadButton(gp, index, callback) {
     }
 }
 
+function setGridFocus(index) {
+    selectedGridIndex = index;
+    updateGridFocusUI(false); // Don't scroll when hovering
+}
+
 function moveGridFocus(delta) {
     if (artworks.length === 0) return;
     selectedGridIndex = (selectedGridIndex + delta + artworks.length) % artworks.length;
@@ -803,12 +815,14 @@ function getGridColumns() {
     return cols || 1;
 }
 
-function updateGridFocusUI() {
+function updateGridFocusUI(shouldScroll = true) {
     document.querySelectorAll('.artwork-grid-item').forEach(el => el.classList.remove('is-selected'));
     const active = document.getElementById(`grid-item-${selectedGridIndex}`);
     if (active) {
         active.classList.add('is-selected');
-        active.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        if (shouldScroll) {
+            active.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
     }
 }
 
