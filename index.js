@@ -8,7 +8,20 @@ let descriptions = {};
 let currentIndex = 0;
 let isAutoplay = false;
 let autoplayTimer = null;
+let currentZoom = 1;
+let isDragging = false;
+let startX, startY;
+let translateX = 0;
+let translateY = 0;
 const SLIDE_INTERVAL = 8000;
+
+// Home screen selection state
+let selectedGridIndex = 0;
+
+// Gamepad state
+let gamepadLoopId = null;
+let lastGamepadButtonState = {};
+const GAMEPAD_STICK_DEADZONE = 0.15;
 
 function saveSlideshowState() {
     const modal = document.getElementById('slideshowModal');
@@ -275,44 +288,13 @@ async function init() {
             return;
         }
 
-        const tableCandidates = ['artwork', 'painting'];
-        const descriptionTableCandidates = ['artwork_description', 'painting_description'];
+        const { data: paintData, error: paintError } = await supabaseClient.from('artwork').select('*');
+        if (paintError) console.warn('Unable to query artwork table:', paintError);
 
-        let paintData = [];
-        for (const tableName of tableCandidates) {
-            try {
-                const { data, error } = await supabaseClient.from(tableName).select('*');
-                if (error) {
-                    console.warn(`Unable to query ${tableName}:`, error.message || error);
-                    continue;
-                }
-                if (Array.isArray(data) && data.length) {
-                    paintData = data;
-                    break;
-                }
-            } catch (err) {
-                console.warn(`Table ${tableName} not available:`, err);
-            }
-        }
+        const { data: descData, error: descError } = await supabaseClient.from('artwork_description').select('*');
+        if (descError) console.warn('Unable to query artwork_description table:', descError);
 
-        let descData = [];
-        for (const tableName of descriptionTableCandidates) {
-            try {
-                const { data, error } = await supabaseClient.from(tableName).select('*');
-                if (error) {
-                    console.warn(`Unable to query ${tableName}:`, error.message || error);
-                    continue;
-                }
-                if (Array.isArray(data) && data.length) {
-                    descData = data;
-                    break;
-                }
-            } catch (err) {
-                console.warn(`Description table ${tableName} not available:`, err);
-            }
-        }
-
-        if (descData.length) {
+        if (descData && descData.length) {
             descriptions = {};
             descData.forEach(d => {
                 const key = String(d.artwork_id ?? d.artworkId ?? d.id ?? '');
@@ -351,6 +333,11 @@ async function init() {
         artworks.sort(() => Math.random() - 0.5);
         renderUI();
         restoreSlideshowState();
+        initPanHandlers();
+        initGamepadSupport();
+
+        // Initial grid selection
+        updateGridFocusUI();
     } catch (err) { console.error(err); }
     finally {
         if (loading) loading.classList.add('hidden');
@@ -374,7 +361,7 @@ function renderUI() {
             : `<img src="${art.imageUrl}" class="w-full h-full object-cover grayscale-[0.2] group-hover:grayscale-0 transition-all duration-1000" loading="lazy">`;
 
         return `
-        <div onclick="openSlideshow(${idx})" class="artwork-grid-item group cursor-pointer relative aspect-[3/4] bg-[#0f0f0f] rounded-2xl overflow-hidden border border-white/5">
+        <div id="grid-item-${idx}" onclick="openSlideshow(${idx})" class="artwork-grid-item group cursor-pointer relative aspect-[3/4] bg-[#0f0f0f] rounded-2xl overflow-hidden border border-white/5">
             ${mediaMarkup}
             <div class="absolute inset-0 z-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-80 group-hover:opacity-40 transition-opacity"></div>
             <div class="absolute inset-x-0 bottom-0 p-8 flex flex-col justify-end translate-y-6 group-hover:translate-y-0 transition-transform duration-700">
@@ -410,6 +397,8 @@ function renderUI() {
 
 function openSlideshow(index) {
     currentIndex = index;
+    selectedGridIndex = index; // Sync
+    resetZoom();
     updateSlideshow();
     const modal = document.getElementById('slideshowModal');
     if (!modal) return;
@@ -424,6 +413,8 @@ function closeSlideshow() {
     const modal = document.getElementById('slideshowModal');
     if (modal) {
         modal.classList.add('hidden');
+        modal.classList.remove('is-zoomed');
+        modal.classList.remove('is-focused');
     }
     document.body.style.overflow = '';
     isAutoplay = false;
@@ -433,6 +424,8 @@ function closeSlideshow() {
     if (document.fullscreenElement) {
         document.exitFullscreen?.();
     }
+    resetZoom();
+    updateGridFocusUI();
 }
 
 function toggleFullscreen() {
@@ -446,6 +439,93 @@ function toggleFullscreen() {
     }
 }
 
+function toggleFocusMode() {
+    const modal = document.getElementById('slideshowModal');
+    if (!modal) return;
+    modal.classList.toggle('is-focused');
+    resetZoom();
+}
+
+function zoomIn() {
+    currentZoom = Math.min(currentZoom + 0.5, 4);
+    applyZoom();
+}
+
+function zoomOut() {
+    currentZoom = Math.max(currentZoom - 0.5, 1);
+    applyZoom();
+}
+
+function resetZoom() {
+    currentZoom = 1;
+    translateX = 0;
+    translateY = 0;
+    applyZoom();
+}
+
+function applyZoom() {
+    const img = document.getElementById('slideshowImage');
+    const modal = document.getElementById('slideshowModal');
+    if (img && modal) {
+        if (currentZoom > 1) {
+            modal.classList.add('is-zoomed');
+            img.style.cursor = 'grab';
+            img.style.transition = isDragging ? 'none' : 'transform 0.3s cubic-bezier(0.2, 1, 0.3, 1)';
+        } else {
+            modal.classList.remove('is-zoomed');
+            img.style.cursor = 'default';
+            translateX = 0;
+            translateY = 0;
+            img.style.transition = 'transform 0.5s cubic-bezier(0.2, 1, 0.3, 1)';
+        }
+        img.style.transform = `translate(${translateX}px, ${translateY}px) scale(${currentZoom})`;
+    }
+}
+
+function initPanHandlers() {
+    const img = document.getElementById('slideshowImage');
+    const container = document.querySelector('.slideshow-image-container');
+    if (!img || !container) return;
+
+    img.addEventListener('mousedown', (e) => {
+        if (currentZoom <= 1) return;
+        isDragging = true;
+        startX = e.clientX - translateX;
+        startY = e.clientY - translateY;
+        img.style.cursor = 'grabbing';
+        img.style.transition = 'none';
+        e.preventDefault();
+    });
+
+    window.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        translateX = e.clientX - startX;
+        translateY = e.clientY - startY;
+        applyZoom();
+    });
+
+    window.addEventListener('mouseup', () => {
+        if (!isDragging) return;
+        isDragging = false;
+        if (img) {
+            img.style.cursor = currentZoom > 1 ? 'grab' : 'default';
+            img.style.transition = 'transform 0.3s cubic-bezier(0.2, 1, 0.3, 1)';
+        }
+    });
+
+    container.addEventListener('wheel', (e) => {
+        if (document.getElementById('slideshowText').classList.contains('hidden')) {
+            e.preventDefault();
+            const delta = e.deltaY > 0 ? -0.2 : 0.2;
+            const newZoom = Math.min(Math.max(currentZoom + delta, 1), 4);
+            if (newZoom !== currentZoom) {
+                currentZoom = newZoom;
+                applyZoom();
+            }
+        }
+    }, { passive: false });
+}
+
 function updateSlideshow() {
     const art = artworks[currentIndex];
     const img = document.getElementById('slideshowImage');
@@ -457,6 +537,7 @@ function updateSlideshow() {
     const d = getArtworkDetails(art);
     renderTagChips(getArtworkTags(art));
 
+    resetZoom();
     const isText = isTextArtwork(art);
     const contentText = getArtworkTextContent(art);
     const textNode = textDisplay.querySelector('div');
@@ -464,14 +545,12 @@ function updateSlideshow() {
     if (isText) {
         img.classList.add('hidden');
         img.style.opacity = '0';
-        img.style.transform = 'scale(0.98)';
         textDisplay.classList.remove('hidden');
         if (textNode) textNode.innerHTML = renderMarkdown(contentText);
     } else {
         textDisplay.classList.add('hidden');
         img.classList.remove('hidden');
         img.style.opacity = '0';
-        img.style.transform = 'scale(0.98)';
     }
 
     setTimeout(() => {
@@ -495,11 +574,10 @@ function updateSlideshow() {
 
         img.onerror = () => {
             img.style.opacity = '1';
-            img.style.transform = 'scale(1)';
             img.src = 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1600"><rect width="100%" height="100%" fill="#111"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#ffffff" font-size="28" font-family="sans-serif">Image unavailable</text></svg>');
         };
 
-        img.onload = () => { img.style.opacity = '1'; img.style.transform = 'scale(1)'; };
+        img.onload = () => { img.style.opacity = '1'; };
         img.src = art.imageUrl;
 
         document.getElementById('slideCounter').textContent = `${(currentIndex + 1).toString().padStart(2, '0')} / ${artworks.length.toString().padStart(2, '0')}`;
@@ -590,12 +668,168 @@ async function sendEmail() {
     closeContact();
 }
 
+// Gamepad Implementation
+function initGamepadSupport() {
+    window.addEventListener("gamepadconnected", (e) => {
+        console.log("Gamepad connected:", e.gamepad.id);
+        if (!gamepadLoopId) gamepadLoop();
+    });
+}
+
+function gamepadLoop() {
+    const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+    const gp = gamepads[0];
+
+    if (gp) {
+        const modal = document.getElementById('slideshowModal');
+        const isVisible = modal && !modal.classList.contains('hidden');
+
+        if (isVisible) {
+            // Slideshow Mode Controls
+            handleGamepadButton(gp, 0, togglePlayPause); // A
+            handleGamepadButton(gp, 1, () => { if (currentZoom > 1) resetZoom(); else closeSlideshow(); }); // B
+            handleGamepadButton(gp, 2, toggleFocusMode); // X
+            handleGamepadButton(gp, 3, toggleFullscreen); // Y
+            handleGamepadButton(gp, 4, prevSlide); // LB
+            handleGamepadButton(gp, 5, nextSlide); // RB
+            handleGamepadButton(gp, 14, prevSlide); // D-Pad Left
+            handleGamepadButton(gp, 15, nextSlide); // D-Pad Right
+            handleGamepadButton(gp, 12, zoomIn);    // D-Pad Up
+            handleGamepadButton(gp, 13, zoomOut);   // D-Pad Down
+
+            const lsX = gp.axes[0];
+            if (lsX < -0.6) handleGamepadButton({index: gp.index, buttons: [{pressed: true}]}, 'LS_LEFT', prevSlide);
+            else if (lsX > 0.6) handleGamepadButton({index: gp.index, buttons: [{pressed: true}]}, 'LS_RIGHT', nextSlide);
+            else {
+                lastGamepadButtonState[gp.index + '_LS_LEFT'] = false;
+                lastGamepadButtonState[gp.index + '_LS_RIGHT'] = false;
+            }
+
+            if (document.getElementById('slideshowText').classList.contains('hidden')) {
+                const lt = gp.buttons[6].value;
+                const rt = gp.buttons[7].value;
+                if (rt > 0.1) { currentZoom = Math.min(currentZoom + rt * 0.05, 4); applyZoom(); }
+                if (lt > 0.1) { currentZoom = Math.max(currentZoom - lt * 0.05, 1); applyZoom(); }
+                if (currentZoom > 1) {
+                    const rsX = gp.axes[2];
+                    const rsY = gp.axes[3];
+                    if (Math.abs(rsX) > GAMEPAD_STICK_DEADZONE || Math.abs(rsY) > GAMEPAD_STICK_DEADZONE) {
+                        translateX -= rsX * 20 * currentZoom;
+                        translateY -= rsY * 20 * currentZoom;
+                        applyZoom();
+                    }
+                }
+            }
+        } else {
+            // Home Screen Mode Controls
+            // A: Select card
+            handleGamepadButton(gp, 0, () => {
+                if (artworks.length > 0) openSlideshow(selectedGridIndex);
+            });
+
+            // LB / RB: Fast Navigation
+            handleGamepadButton(gp, 4, () => moveGridFocus(-1)); // LB
+            handleGamepadButton(gp, 5, () => moveGridFocus(1));  // RB
+
+            // D-Pad navigation
+            handleGamepadButton(gp, 14, () => moveGridFocus(-1)); // Left
+            handleGamepadButton(gp, 15, () => moveGridFocus(1));  // Right
+            handleGamepadButton(gp, 12, () => moveGridFocusVertical(-1)); // Up
+            handleGamepadButton(gp, 13, () => moveGridFocusVertical(1));  // Down
+
+            const lsX = gp.axes[0];
+            const lsY = gp.axes[1];
+
+            if (lsX < -0.6) handleGamepadButton({index: gp.index, buttons: [{pressed: true}]}, 'GRID_LS_LEFT', () => moveGridFocus(-1));
+            else if (lsX > 0.6) handleGamepadButton({index: gp.index, buttons: [{pressed: true}]}, 'GRID_LS_RIGHT', () => moveGridFocus(1));
+            else {
+                lastGamepadButtonState[gp.index + '_GRID_LS_LEFT'] = false;
+                lastGamepadButtonState[gp.index + '_GRID_LS_RIGHT'] = false;
+            }
+
+            if (lsY < -0.6) handleGamepadButton({index: gp.index, buttons: [{pressed: true}]}, 'GRID_LS_UP', () => moveGridFocusVertical(-1));
+            else if (lsY > 0.6) handleGamepadButton({index: gp.index, buttons: [{pressed: true}]}, 'GRID_LS_DOWN', () => moveGridFocusVertical(1));
+            else {
+                lastGamepadButtonState[gp.index + '_GRID_LS_UP'] = false;
+                lastGamepadButtonState[gp.index + '_GRID_LS_DOWN'] = false;
+            }
+        }
+    }
+
+    gamepadLoopId = requestAnimationFrame(gamepadLoop);
+}
+
+function handleGamepadButton(gp, index, callback) {
+    const isPressed = typeof index === 'string' ? true : (gp.buttons[index] && gp.buttons[index].pressed);
+    const stateKey = gp.index + '_' + index;
+    if (isPressed) {
+        if (!lastGamepadButtonState[stateKey]) {
+            callback();
+            lastGamepadButtonState[stateKey] = true;
+        }
+    } else {
+        lastGamepadButtonState[stateKey] = false;
+    }
+}
+
+function moveGridFocus(delta) {
+    if (artworks.length === 0) return;
+    selectedGridIndex = (selectedGridIndex + delta + artworks.length) % artworks.length;
+    updateGridFocusUI();
+}
+
+function moveGridFocusVertical(delta) {
+    if (artworks.length === 0) return;
+    const cols = getGridColumns();
+    let newIndex = selectedGridIndex + (delta * cols);
+    if (newIndex >= 0 && newIndex < artworks.length) {
+        selectedGridIndex = newIndex;
+        updateGridFocusUI();
+    }
+}
+
+function getGridColumns() {
+    const grid = document.getElementById('galleryGrid');
+    if (!grid || artworks.length < 2) return 1;
+    const items = document.querySelectorAll('.artwork-grid-item');
+    if (items.length < 2) return 1;
+
+    let cols = 0;
+    const firstTop = items[0].offsetTop;
+    for (let i = 0; i < items.length; i++) {
+        if (Math.abs(items[i].offsetTop - firstTop) < 5) cols++;
+        else break;
+    }
+    return cols || 1;
+}
+
+function updateGridFocusUI() {
+    document.querySelectorAll('.artwork-grid-item').forEach(el => el.classList.remove('is-selected'));
+    const active = document.getElementById(`grid-item-${selectedGridIndex}`);
+    if (active) {
+        active.classList.add('is-selected');
+        active.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+}
+
 init();
+
 window.addEventListener('keydown', (e) => {
     const modal = document.getElementById('slideshowModal');
-    if (!modal || modal.classList.contains('hidden')) return;
+    if (!modal || modal.classList.contains('hidden')) {
+        if (e.key === 'Enter' && artworks.length > 0) openSlideshow(selectedGridIndex);
+        if (e.key === 'ArrowRight') moveGridFocus(1);
+        if (e.key === 'ArrowLeft') moveGridFocus(-1);
+        if (e.key === 'ArrowUp') moveGridFocusVertical(-1);
+        if (e.key === 'ArrowDown') moveGridFocusVertical(1);
+        return;
+    }
     if (e.key === 'ArrowRight') nextSlide();
     if (e.key === 'ArrowLeft') prevSlide();
     if (e.key === 'Escape') closeSlideshow();
     if (e.key === ' ') { e.preventDefault(); togglePlayPause(); }
+    if (e.key === '+') zoomIn();
+    if (e.key === '-') zoomOut();
+    if (e.key === '0') resetZoom();
+    if (e.key.toLowerCase() === 'f') toggleFocusMode();
 });

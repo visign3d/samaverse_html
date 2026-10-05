@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <!-- Primary Meta Tags -->
-    <title>Samaverse | Multidimensional Painting Multiverse by Viktor Kadza Jr.</title>
-    <meta name="title" content="Samaverse | Multidimensional Painting Multiverse by Viktor Kadza Jr.">
+    <title>Samaverse | Multidimensional Artwork Multiverse by Viktor Kadza Jr.</title>
+    <meta name="title" content="Samaverse | Multidimensional Artwork Multiverse by Viktor Kadza Jr.">
     <meta name="description" content="Samaverse is a collection of interconnected visual universes by Viktor Kadza Jr. Each series explores a distinct generative principle, visual language, ontology, or way of representing reality.">
-    <meta name="keywords" content="Samaverse, Samaversum, Viktor Kadza Jr, Boltzmann Brain, Digital Art, Painting, Generative Art, Art Gallery, samaversum.com">
+    <meta name="keywords" content="Samaverse, Samaversum, Viktor Kadza Jr, Boltzmann Brain, Digital Art, Artwork, Generative Art, Art Gallery, samaversum.com">
     <meta name="author" content="Viktor Kadza Jr.">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="https://www.samaversum.com/">
@@ -19,7 +19,7 @@
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://www.samaversum.com/">
-    <meta property="og:title" content="Samaverse | Multidimensional Painting Universe by Viktor Kadza Jr.">
+    <meta property="og:title" content="Samaverse | Multidimensional Artwork Universe by Viktor Kadza Jr.">
     <meta property="og:description" content="Samaverse is a collection of interconnected visual universes by Viktor Kadza Jr. Each series explores a distinct generative principle, visual language, ontology, or way of representing reality.">
     <meta property="og:image" content="https://www.samaversum.com/favicon.png">
 
@@ -50,13 +50,82 @@
 
         .pro-image {
             box-shadow: 0 50px 100px -20px rgba(0, 0, 0, 0.8), 0 30px 60px -30px rgba(230, 0, 35, 0.1);
-            transition: all 0.8s cubic-bezier(0.2, 1, 0.3, 1);
+            transition: transform 0.3s cubic-bezier(0.2, 1, 0.3, 1), opacity 0.8s ease;
             filter: brightness(0.9);
+            will-change: transform;
         }
 
         .pro-image:hover {
             filter: brightness(1);
-            transform: scale(1.02) !important;
+        }
+
+        /* Immersive Zoom Styles */
+        #slideshowModal.is-zoomed #proMetaPanel,
+        #slideshowModal.is-zoomed .h-32.glass-panel,
+        #slideshowModal.is-zoomed .progress-bar-container {
+            opacity: 0;
+            pointer-events: none;
+            visibility: hidden;
+        }
+
+        #slideshowModal.is-zoomed .slideshow-stage {
+            position: absolute;
+            inset: 0;
+            z-index: 200;
+            background: #000;
+        }
+
+        #slideshowModal.is-zoomed .slideshow-image-container {
+            position: absolute;
+            inset: 0;
+            padding: 0;
+            max-width: none;
+            max-height: none;
+        }
+
+        #slideshowModal.is-zoomed .pro-image {
+            max-width: none;
+            max-height: none;
+            box-shadow: none;
+        }
+
+        #slideshowModal.is-zoomed .slideshow-nav-btn {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* Focus Mode Styles */
+        #slideshowModal.is-focused .slideshow-ui-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 120;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, transparent 100%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        #slideshowModal.is-focused .slideshow-ui-overlay:hover {
+            opacity: 1;
+        }
+        #slideshowModal.is-focused #proMetaPanel,
+        #slideshowModal.is-focused .h-32.glass-panel,
+        #slideshowModal.is-focused .progress-bar-container {
+            display: none !important;
+        }
+        #slideshowModal.is-focused .slideshow-stage {
+            position: absolute;
+            inset: 0;
+            z-index: 100;
+            background: #000;
+            padding: 0;
+        }
+        #slideshowModal.is-focused .slideshow-nav-btn {
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        #slideshowModal.is-focused .slideshow-stage:hover .slideshow-nav-btn {
+            opacity: 1;
         }
 
         .thumb-strip {
@@ -101,15 +170,6 @@
             border: 1px solid rgba(255, 255, 255, 0.03);
         }
 
-        .ken-burns {
-            animation: kenburns 20s infinite alternate;
-        }
-
-        @keyframes kenburns {
-            from { transform: scale(1) translate(0, 0); }
-            to { transform: scale(1.1) translate(-1%, -1%); }
-        }
-
         .metadata-label {
             font-family: 'JetBrains Mono', monospace;
             font-size: 10px;
@@ -122,11 +182,18 @@
 
         .artwork-grid-item {
             transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+            border: 1px solid transparent;
         }
 
-        .artwork-grid-item:hover {
+        .artwork-grid-item:hover, .artwork-grid-item.is-selected {
             transform: translateY(-12px);
             box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.7);
+        }
+
+        .artwork-grid-item.is-selected {
+            border-color: #E60023;
+            box-shadow: 0 0 0 2px #E60023, 0 30px 60px -12px rgba(0, 0, 0, 0.7);
+            z-index: 10;
         }
 
         .markdown-content {
@@ -189,11 +256,11 @@
         <header class="mb-32 max-w-5xl">
             <div class="flex items-center gap-4 mb-8">
                 <div class="w-12 h-[1px] bg-accent-red"></div>
-                <div class="text-[10px] font-bold text-accent-red tracking-[0.4em] uppercase">A painting project by Viktor Kadza Jr.</div>
+                <div class="text-[10px] font-bold text-accent-red tracking-[0.4em] uppercase">An artwork project by Viktor Kadza Jr.</div>
             </div>
             <h2 class="text-5xl lg:text-8xl font-light mb-12 leading-[1] tracking-tight text-white">
                 <span class="font-extralight text-gray-600">Samaverse:</span><br>
-                A <span class="headline-accent italic">Multidimensional</span> Painting <span class="text-white">Universe</span>
+                A <span class="headline-accent italic">Multidimensional</span> Artwork <span class="text-white">Universe</span>
             </h2>
         </header>
 
@@ -208,7 +275,7 @@
         <div class="max-w-[1800px] mx-auto px-8 py-12 lg:px-20 grid gap-10 sm:grid-cols-2">
             <div>
                 <span class="metadata-label">Project Note</span>
-                <p class="max-w-xl text-sm leading-relaxed text-gray-400">Samaverse is a collection of interconnected visual universes. Each series explores a distinct generative principle, visual language, ontology, or way of representing reality. Samaversum is a speculative painting project exploring the idea of pseudo-life, memory, and artificial selfhood inside an imagined universe. It centers on Boltzmann Brains, unstable minds, and the strange persistence of identity within a simulated reality.</p>
+                <p class="max-w-xl text-sm leading-relaxed text-gray-400">Samaverse is a collection of interconnected visual universes. Each series explores a distinct generative principle, visual language, ontology, or way of representing reality. Samaversum is a speculative project exploring the idea of pseudo-life, memory, and artificial selfhood inside an imagined universe. It centers on Boltzmann Brains, unstable minds, and the strange persistence of identity within a simulated reality.</p>
             </div>
             <div>
                 <span class="metadata-label">Archive Note</span>
@@ -221,7 +288,7 @@
     <div id="slideshowModal" class="fixed inset-0 z-[100] hidden flex-col transition-all duration-700">
         <div class="progress-bar-container"><div id="progressBar" class="progress-bar"></div></div>
 
-        <div class="flex justify-between items-center px-10 py-8 z-[110]">
+        <div class="flex justify-between items-center px-10 py-8 z-[110] slideshow-ui-overlay">
             <div class="flex items-center gap-6">
                 <div id="slideCounter" class="text-[10px] font-mono tracking-widest text-gray-500">01 / 00</div>
                 <div class="h-4 w-[1px] bg-white/10"></div>
@@ -234,7 +301,22 @@
                 </button>
             </div>
             <div class="flex items-center gap-2">
-                <button onclick="toggleFullscreen()" class="p-3 hover:bg-accent-red/10 rounded-full text-white transition-all" aria-label="Toggle fullscreen">
+                <!-- Zoom Controls -->
+                <button onclick="zoomOut()" class="p-3 hover:bg-white/10 rounded-full text-white/50 hover:text-white transition-all" title="Zoom Out (-)">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path></svg>
+                </button>
+                <button onclick="resetZoom()" class="text-[10px] font-mono p-2 hover:bg-white/10 rounded text-white/50 hover:text-white transition-all" title="Reset Zoom (0)">
+                    1:1
+                </button>
+                <button onclick="zoomIn()" class="p-3 hover:bg-white/10 rounded-full text-white/50 hover:text-white transition-all" title="Zoom In (+)">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                </button>
+                <div class="w-[1px] h-4 bg-white/10 mx-2"></div>
+
+                <button onclick="toggleFocusMode()" class="p-3 hover:bg-white/10 rounded-full text-white/50 hover:text-white transition-all" title="Focus Mode (f)">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path></svg>
+                </button>
+                <button onclick="toggleFullscreen()" class="p-3 hover:bg-accent-red/10 rounded-full text-white transition-all" title="Toggle Fullscreen (F)">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 3H3v5M21 8V3h-5M3 16v5h5M16 21h5v-5"></path></svg>
                 </button>
                 <button onclick="closeSlideshow()" class="p-3 hover:bg-accent-red/10 rounded-full text-white transition-all">
@@ -244,17 +326,17 @@
         </div>
 
         <div class="flex-1 flex flex-col lg:flex-row min-h-0 relative stage-backdrop">
-            <div class="flex-[3] min-w-0 relative flex items-center justify-center p-4 lg:p-8 overflow-hidden">
-                <div class="slideshow-image-container relative w-full h-full flex items-center justify-center">
+            <div class="flex-[3] min-w-0 relative flex items-center justify-center p-4 lg:p-8 overflow-hidden slideshow-stage">
+                <div class="slideshow-image-container relative w-full h-full flex items-center justify-center overflow-hidden">
                     <img id="slideshowImage" src="" class="pro-image max-h-full max-w-full object-contain" alt="Current Piece">
                     <div id="slideshowText" class="hidden absolute inset-0 z-10 flex items-center justify-center w-full max-w-4xl px-10 text-center mx-auto">
                         <div class="font-light leading-[0.88] tracking-[-0.06em] text-white/95 text-3xl sm:text-5xl lg:text-7xl whitespace-pre-wrap break-words"></div>
                     </div>
                 </div>
-                <button onclick="prevSlide()" class="absolute left-8 p-6 group transition-all">
+                <button onclick="prevSlide()" class="absolute left-8 p-6 group transition-all z-20 slideshow-nav-btn">
                     <svg class="w-10 h-10 text-white/20 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 19l-7-7 7-7"></path></svg>
                 </button>
-                <button onclick="nextSlide()" class="absolute right-8 p-6 group transition-all">
+                <button onclick="nextSlide()" class="absolute right-8 p-6 group transition-all z-20 slideshow-nav-btn">
                     <svg class="w-10 h-10 text-white/20 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5l7 7-7 7"></path></svg>
                 </button>
             </div>
@@ -291,7 +373,7 @@
             </div>
         </div>
 
-        <div class="h-32 glass-panel border-t border-white/5 px-10 flex items-center">
+        <div class="h-32 glass-panel border-t border-white/5 px-10 flex items-center slideshow-ui-overlay">
             <div id="thumbStrip" class="thumb-strip flex gap-6 overflow-x-auto w-full py-4 items-center"></div>
         </div>
     </div>
