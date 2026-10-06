@@ -249,6 +249,20 @@
             padding: 0.15em 0.35em;
             border-radius: 0.25em;
         }
+
+        #headerDescription {
+            transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+            max-height: 0;
+            opacity: 0;
+            overflow: hidden;
+            margin-bottom: 0;
+        }
+
+        #headerDescription.expanded {
+            max-height: 500px;
+            opacity: 1;
+            margin-bottom: 4rem;
+        }
     </style>
 </head>
 <body class="antialiased selection:bg-red-600/30">
@@ -274,10 +288,15 @@
                 <div class="w-12 h-[1px] bg-accent-red"></div>
                 <div class="text-[10px] font-bold text-accent-red tracking-[0.4em] uppercase">An artwork project by Viktor Kadza Jr.</div>
             </div>
-            <h2 class="text-5xl lg:text-8xl font-light mb-12 leading-[1] tracking-tight text-white">
-                <span class="font-extralight text-gray-600">Samaverse:</span><br>
+            <h2 onclick="toggleHeaderDescription()" class="text-5xl lg:text-8xl font-light mb-12 leading-[1] tracking-tight text-white cursor-pointer select-none hover:opacity-80 transition-opacity group">
+                <span class="font-extralight text-gray-600 group-hover:text-gray-400 transition-colors">Samaverse:</span><br>
                 A <span class="headline-accent italic">Multidimensional</span> Artwork <span class="text-white">Universe</span>
             </h2>
+            <div id="headerDescription">
+                <p class="max-w-2xl text-xl text-gray-400 font-light leading-relaxed border-l border-accent-red/30 pl-8">
+                    Samaverse is a collection of interconnected visual universes. Each series explores a distinct generative principle, visual language, ontology, or way of representing reality. Samaversum is a speculative project exploring the idea of pseudo-life, memory, and artificial selfhood inside an imagined universe.
+                </p>
+            </div>
         </header>
 
         <div id="loading" class="flex justify-center items-center py-40">

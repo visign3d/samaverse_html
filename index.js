@@ -368,6 +368,10 @@ async function init() {
         initGamepadSupport();
         updateGamepadConnectionStatus();
 
+        if (window.location.hash === '#about') {
+            showAbout();
+        }
+
         // Initial grid selection - don't scroll on start
         updateGridFocusUI(false);
     } catch (err) { console.error(err); }
@@ -672,8 +676,28 @@ function nextSlide() { currentIndex = (currentIndex + 1) % artworks.length; upda
 function prevSlide() { currentIndex = (currentIndex - 1 + artworks.length) % artworks.length; updateSlideshow(); }
 function goToSlide(idx) { currentIndex = idx; updateSlideshow(); }
 
-function showAbout() { const modal = document.getElementById('aboutModal'); if (!modal) return; modal.classList.remove('hidden'); modal.classList.add('flex'); document.body.style.overflow = 'hidden'; }
-function closeAbout() { const modal = document.getElementById('aboutModal'); if (modal) { modal.classList.add('hidden'); modal.classList.remove('flex'); document.body.style.overflow = ''; } }
+function showAbout() {
+    const modal = document.getElementById('aboutModal');
+    if (!modal) return;
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    document.body.style.overflow = 'hidden';
+    if (window.location.hash !== '#about') {
+        history.pushState(null, null, '#about');
+    }
+}
+
+function closeAbout() {
+    const modal = document.getElementById('aboutModal');
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        document.body.style.overflow = '';
+        if (window.location.hash === '#about') {
+            history.pushState(null, null, ' ');
+        }
+    }
+}
 
 function showContact() { const modal = document.getElementById('contactModal'); if (!modal) return; modal.classList.remove('hidden'); modal.classList.add('flex'); }
 function closeContact() { const modal = document.getElementById('contactModal'); if (modal) modal.classList.add('hidden'); }
@@ -706,6 +730,13 @@ async function sendEmail() {
     const mailBody = encodeURIComponent(`Name: ${name}\nEmail: ${email}\n\n${message}`);
     window.location.href = `mailto:samaversum@gmail.com?subject=Inquiry&body=${mailBody}`;
     closeContact();
+}
+
+function toggleHeaderDescription() {
+    const desc = document.getElementById('headerDescription');
+    if (desc) {
+        desc.classList.toggle('expanded');
+    }
 }
 
 // Gamepad Implementation
