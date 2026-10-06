@@ -24,12 +24,35 @@ let lastGamepadButtonState = {};
 const GAMEPAD_STICK_DEADZONE = 0.15;
 let isControllerActive = false;
 
-window.addEventListener('mousemove', () => {
+const restoreMouse = () => {
     if (isControllerActive) {
         isControllerActive = false;
         document.body.classList.remove('controller-active');
     }
-});
+};
+
+window.addEventListener('mousemove', restoreMouse);
+window.addEventListener('mousedown', restoreMouse);
+window.addEventListener('wheel', restoreMouse, { passive: true });
+
+function updateGamepadConnectionStatus() {
+    const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+    let hasGamepad = false;
+    for (let i = 0; i < gamepads.length; i++) {
+        if (gamepads[i]) { hasGamepad = true; break; }
+    }
+
+    if (hasGamepad) {
+        document.body.classList.add('gamepad-detected');
+    } else {
+        document.body.classList.remove('gamepad-detected');
+        isControllerActive = false;
+        document.body.classList.remove('controller-active');
+    }
+}
+
+window.addEventListener("gamepadconnected", updateGamepadConnectionStatus);
+window.addEventListener("gamepaddisconnected", updateGamepadConnectionStatus);
 
 function saveSlideshowState() {
     const modal = document.getElementById('slideshowModal');
@@ -343,6 +366,7 @@ async function init() {
         restoreSlideshowState();
         initPanHandlers();
         initGamepadSupport();
+        updateGamepadConnectionStatus();
 
         // Initial grid selection - don't scroll on start
         updateGridFocusUI(false);
@@ -366,7 +390,7 @@ function renderUI() {
         const isText = isTextArtwork(art);
         const mediaMarkup = isText
             ? `<div class="absolute inset-0 z-10 flex items-center justify-center p-6 bg-[#111111] text-left"><div class="relative z-30 w-full max-w-[90%] markdown-content font-light leading-[0.82] tracking-[-0.06em] text-white/95 text-2xl sm:text-3xl lg:text-4xl">${renderMarkdown(getArtworkTextContent(art))}</div></div>`
-            : `<img src="${art.imageUrl}" class="w-full h-full object-cover grayscale-[0.2] group-hover:grayscale-0 transition-all duration-1000" loading="lazy">`;
+            : `<img src="${art.imageUrl}" alt="${escapeHtml(titleText)}" class="w-full h-full object-cover grayscale-[0.2] group-hover:grayscale-0 transition-all duration-1000" loading="lazy">`;
 
         return `
         <div id="grid-item-${idx}"
@@ -400,7 +424,7 @@ function renderUI() {
         }
 
         return `
-            <img onclick="goToSlide(${idx})" id="thumb-${idx}" src="${art.imageUrl}"
+            <img onclick="goToSlide(${idx})" id="thumb-${idx}" src="${art.imageUrl}" alt="${escapeHtml(art.title || 'Artwork thumbnail')}"
                  class="thumb-item h-20 w-20 object-cover rounded-2xl cursor-pointer flex-shrink-0">
         `;
     }).join('');
@@ -436,7 +460,7 @@ function closeSlideshow() {
         document.exitFullscreen?.();
     }
     resetZoom();
-    updateGridFocusUI();
+    updateGridFocusUI(false);
 }
 
 function toggleFullscreen() {
@@ -590,6 +614,7 @@ function updateSlideshow() {
 
         img.onload = () => { img.style.opacity = '1'; };
         img.src = art.imageUrl;
+        img.alt = d ? (d.artwork_name || art.title) : (art.title || 'Artwork display');
 
         document.getElementById('slideCounter').textContent = `${(currentIndex + 1).toString().padStart(2, '0')} / ${artworks.length.toString().padStart(2, '0')}`;
         document.getElementById('proTitle').textContent = d ? (d.artwork_name || art.title) : art.title;
