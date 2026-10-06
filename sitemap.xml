@@ -3,7 +3,7 @@
         xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
   <url>
     <loc>https://www.samaversum.com/</loc>
-    <lastmod>2024-05-22</lastmod>
+    <lastmod>2024-10-11</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
     <image:image>
@@ -73,5 +73,11 @@
       <image:loc>https://samaversum.com/images/small/x-fwr.jpg</image:loc>
       <image:title>X-FWR</image:title>
     </image:image>
+  </url>
+  <url>
+    <loc>https://www.samaversum.com/#about</loc>
+    <lastmod>2024-10-11</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
   </url>
 </urlset>

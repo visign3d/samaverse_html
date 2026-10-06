@@ -671,6 +671,10 @@ function resetProgressBar() {
 function nextSlide() { currentIndex = (currentIndex + 1) % artworks.length; updateSlideshow(); }
 function prevSlide() { currentIndex = (currentIndex - 1 + artworks.length) % artworks.length; updateSlideshow(); }
 function goToSlide(idx) { currentIndex = idx; updateSlideshow(); }
+
+function showAbout() { const modal = document.getElementById('aboutModal'); if (!modal) return; modal.classList.remove('hidden'); modal.classList.add('flex'); document.body.style.overflow = 'hidden'; }
+function closeAbout() { const modal = document.getElementById('aboutModal'); if (modal) { modal.classList.add('hidden'); modal.classList.remove('flex'); document.body.style.overflow = ''; } }
+
 function showContact() { const modal = document.getElementById('contactModal'); if (!modal) return; modal.classList.remove('hidden'); modal.classList.add('flex'); }
 function closeContact() { const modal = document.getElementById('contactModal'); if (modal) modal.classList.add('hidden'); }
 
@@ -880,6 +884,16 @@ init();
 
 window.addEventListener('keydown', (e) => {
     const modal = document.getElementById('slideshowModal');
+    const aboutModal = document.getElementById('aboutModal');
+    const contactModal = document.getElementById('contactModal');
+
+    if (e.key === 'Escape') {
+        if (modal && !modal.classList.contains('hidden')) closeSlideshow();
+        if (aboutModal && !aboutModal.classList.contains('hidden')) closeAbout();
+        if (contactModal && !contactModal.classList.contains('hidden')) closeContact();
+        return;
+    }
+
     if (!modal || modal.classList.contains('hidden')) {
         if (e.key === 'Enter' && artworks.length > 0) openSlideshow(selectedGridIndex);
         if (e.key === 'ArrowRight') moveGridFocus(1);
@@ -890,7 +904,6 @@ window.addEventListener('keydown', (e) => {
     }
     if (e.key === 'ArrowRight') nextSlide();
     if (e.key === 'ArrowLeft') prevSlide();
-    if (e.key === 'Escape') closeSlideshow();
     if (e.key === ' ') { e.preventDefault(); togglePlayPause(); }
     if (e.key === '+') zoomIn();
     if (e.key === '-') zoomOut();

@@ -50,7 +50,7 @@
         .bg-accent-red { background-color: #E60023; }
         .headline-accent { color: #A80020; }
 
-        #slideshowModal {
+        #slideshowModal, #aboutModal {
             backdrop-filter: blur(40px);
             background: rgba(0, 0, 0, 0.95);
         }
@@ -263,6 +263,7 @@
                 <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="12" x2="10" y2="12"></line><line x1="8" y1="10" x2="8" y2="14"></line><circle cx="15" cy="13" r="1"></circle><circle cx="18" cy="11" r="1"></circle><rect x="2" y="6" width="20" height="12" rx="2"></rect></svg>
                 CONTROLLER
             </div>
+            <button onclick="showAbout()" class="text-xs font-bold tracking-widest text-gray-400 hover:text-white transition-colors mr-4">ABOUT</button>
             <button onclick="showContact()" class="text-xs font-bold tracking-widest text-gray-400 hover:text-white transition-colors mr-4">INQUIRE</button>
         </div>
     </nav>
@@ -390,6 +391,56 @@
 
         <div class="h-32 glass-panel border-t border-white/5 px-10 flex items-center slideshow-ui-overlay">
             <div id="thumbStrip" class="thumb-strip flex gap-6 overflow-x-auto w-full py-4 items-center"></div>
+        </div>
+    </div>
+
+    <div id="aboutModal" class="fixed inset-0 z-[200] hidden flex-col transition-all duration-500 overflow-y-auto">
+        <div class="max-w-4xl mx-auto w-full p-8 lg:p-20 relative">
+            <button onclick="closeAbout()" class="fixed top-8 right-8 text-gray-500 hover:text-white transition-colors z-[210] p-4">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+
+            <header class="mb-20">
+                <div class="flex items-center gap-4 mb-8">
+                    <div class="w-12 h-[1px] bg-accent-red"></div>
+                    <div class="text-[10px] font-bold text-accent-red tracking-[0.4em] uppercase">The Multiverse Project</div>
+                </div>
+                <h2 class="text-5xl lg:text-7xl font-light tracking-tighter text-white mb-8">About <span class="headline-accent italic">Samaverse</span></h2>
+            </header>
+
+            <div class="markdown-content text-gray-300 space-y-12 text-lg font-light leading-relaxed">
+                <section>
+                    <h3 class="text-2xl text-white font-medium mb-4">Vision</h3>
+                    <p>Samaverse is a collection of interconnected visual universes. Each series explores a distinct generative principle, visual language, ontology, or way of representing reality.</p>
+                    <p>Samaversum is a speculative project exploring the idea of pseudo-life, memory, and artificial selfhood inside an imagined universe. It centers on Boltzmann Brains, unstable minds, and the strange persistence of identity within a simulated reality.</p>
+                </section>
+
+                <section>
+                    <h3 class="text-2xl text-white font-medium mb-4">Core Dimensions</h3>
+                    <div class="grid gap-8 sm:grid-cols-2">
+                        <div>
+                            <h4 class="text-accent-red font-mono text-xs tracking-widest uppercase mb-2">Pneuma</h4>
+                            <p class="text-sm">Vital energy archetype suggesting fluidity, circulation, and organic emergence.</p>
+                        </div>
+                        <div>
+                            <h4 class="text-accent-red font-mono text-xs tracking-widest uppercase mb-2">Diagramma</h4>
+                            <p class="text-sm">Visual information ontology treating the painting as an information structure / code.</p>
+                        </div>
+                        <div>
+                            <h4 class="text-accent-red font-mono text-xs tracking-widest uppercase mb-2">Architecton</h4>
+                            <p class="text-sm">Structural organization exploring constructed space and architectural grids.</p>
+                        </div>
+                        <div>
+                            <h4 class="text-accent-red font-mono text-xs tracking-widest uppercase mb-2">Oculus</h4>
+                            <p class="text-sm">Perception ontology exploring generated eye-like structures and interpretation.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="border-t border-white/5 pt-12 mt-20">
+                    <p class="text-sm text-gray-500 italic">Each art series represents a different way of constructing, observing, or representing reality within the Samaverse multiverse.</p>
+                </section>
+            </div>
         </div>
     </div>
 
