@@ -22,6 +22,14 @@ let selectedGridIndex = 0;
 let gamepadLoopId = null;
 let lastGamepadButtonState = {};
 const GAMEPAD_STICK_DEADZONE = 0.15;
+let isControllerActive = false;
+
+window.addEventListener('mousemove', () => {
+    if (isControllerActive) {
+        isControllerActive = false;
+        document.body.classList.remove('controller-active');
+    }
+});
 
 function saveSlideshowState() {
     const modal = document.getElementById('slideshowModal');
@@ -336,8 +344,8 @@ async function init() {
         initPanHandlers();
         initGamepadSupport();
 
-        // Initial grid selection
-        updateGridFocusUI();
+        // Initial grid selection - don't scroll on start
+        updateGridFocusUI(false);
     } catch (err) { console.error(err); }
     finally {
         if (loading) loading.classList.add('hidden');
@@ -688,6 +696,22 @@ function gamepadLoop() {
     const gp = gamepads[0];
 
     if (gp) {
+        // Detect activity
+        let hasActivity = false;
+        for (let i = 0; i < gp.buttons.length; i++) {
+            if (gp.buttons[i].pressed) { hasActivity = true; break; }
+        }
+        if (!hasActivity) {
+            for (let i = 0; i < gp.axes.length; i++) {
+                if (Math.abs(gp.axes[i]) > GAMEPAD_STICK_DEADZONE) { hasActivity = true; break; }
+            }
+        }
+
+        if (hasActivity && !isControllerActive) {
+            isControllerActive = true;
+            document.body.classList.add('controller-active');
+        }
+
         const modal = document.getElementById('slideshowModal');
         const isVisible = modal && !modal.classList.contains('hidden');
 
@@ -780,6 +804,7 @@ function handleGamepadButton(gp, index, callback) {
 }
 
 function setGridFocus(index) {
+    if (isControllerActive) return;
     selectedGridIndex = index;
     updateGridFocusUI(false); // Don't scroll when hovering
 }
