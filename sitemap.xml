@@ -1,83 +1,78 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
-        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+    xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
   <url>
     <loc>https://www.samaversum.com/</loc>
-    <lastmod>2024-10-11</lastmod>
+    <lastmod>2024-05-22</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
     <image:image>
-      <image:loc>https://samaversum.com/images/small/architekton-4.jpg</image:loc>
+      <image:loc>https://www.samaversum.com/images/small/architekton-4.jpg</image:loc>
       <image:title>Architecton - 7</image:title>
     </image:image>
     <image:image>
-      <image:loc>https://samaversum.com/images/small/architecton-5.jpg</image:loc>
+      <image:loc>https://www.samaversum.com/images/small/architecton-5.jpg</image:loc>
       <image:title>Architecton-1</image:title>
     </image:image>
     <image:image>
-      <image:loc>https://samaversum.com/images/small/architecton-6.jpg</image:loc>
+      <image:loc>https://www.samaversum.com/images/small/architecton-6.jpg</image:loc>
       <image:title>Scale</image:title>
     </image:image>
     <image:image>
-      <image:loc>https://samaversum.com/images/architecton-7.jpg</image:loc>
+      <image:loc>https://www.samaversum.com/images/architecton-7.jpg</image:loc>
       <image:title>Architecton - 6</image:title>
       <image:caption>Tags: architecton</image:caption>
     </image:image>
     <image:image>
-      <image:loc>https://samaversum.com/images/E.jpg</image:loc>
+      <image:loc>https://www.samaversum.com/images/E.jpg</image:loc>
       <image:title>e{A}</image:title>
       <image:caption>Tags: earth</image:caption>
     </image:image>
     <image:image>
-      <image:loc>https://samaversum.com/images/small/fossilioid-fwr.jpg</image:loc>
+      <image:loc>https://www.samaversum.com/images/small/fossilioid-fwr.jpg</image:loc>
       <image:title>Fossilioid-00-FWR</image:title>
       <image:caption>120x60 cm. Tags: framework</image:caption>
     </image:image>
     <image:image>
-      <image:loc>https://samaversum.com/images/small/sama_corp_logo.jpg</image:loc>
+      <image:loc>https://www.samaversum.com/images/small/sama_corp_logo.jpg</image:loc>
       <image:title>Samacorp Logo</image:title>
     </image:image>
     <image:image>
-      <image:loc>https://samaversum.com/images/small/hologramma-1.jpg</image:loc>
+      <image:loc>https://www.samaversum.com/images/small/hologramma-1.jpg</image:loc>
       <image:title>hologramm</image:title>
       <image:caption>30x30cm acrylic on canvas</image:caption>
     </image:image>
     <image:image>
-      <image:loc>https://samaversum.com/images/oculus%20(18).jpg</image:loc>
+      <image:loc>https://www.samaversum.com/images/oculus%20(18).jpg</image:loc>
       <image:title>oculus-4</image:title>
       <image:caption>** Proper dL/dP ?</image:caption>
     </image:image>
     <image:image>
-      <image:loc>https://samaversum.com/images/small/pneuma%20(20).jpg</image:loc>
+      <image:loc>https://www.samaversum.com/images/small/pneuma%20(20).jpg</image:loc>
       <image:title>Pneuma-01</image:title>
     </image:image>
     <image:image>
-      <image:loc>https://samaversum.com/images/small/pneuma_9-1.jpg</image:loc>
+      <image:loc>https://www.samaversum.com/images/small/pneuma_9-1.jpg</image:loc>
       <image:title>Pneuma-02</image:title>
     </image:image>
     <image:image>
-      <image:loc>https://samaversum.com/images/small/pnemuoid.jpg</image:loc>
+      <image:loc>https://www.samaversum.com/images/small/pnemuoid.jpg</image:loc>
       <image:title>Pneuma-00</image:title>
       <image:caption>40x40 cm</image:caption>
     </image:image>
     <image:image>
-      <image:loc>https://samaversum.com/images/oculus%20(6).jpg</image:loc>
+      <image:loc>https://www.samaversum.com/images/oculus%20(6).jpg</image:loc>
       <image:title>Oculus-6</image:title>
       <image:caption>50 x 50 cm</image:caption>
     </image:image>
     <image:image>
-      <image:loc>https://samaversum.com/images/small/widget-1.jpg</image:loc>
+      <image:loc>https://www.samaversum.com/images/small/widget-1.jpg</image:loc>
       <image:title>widget</image:title>
     </image:image>
     <image:image>
-      <image:loc>https://samaversum.com/images/small/x-fwr.jpg</image:loc>
+      <image:loc>https://www.samaversum.com/images/small/x-fwr.jpg</image:loc>
       <image:title>X-FWR</image:title>
     </image:image>
   </url>
-  <url>
-    <loc>https://www.samaversum.com/#about</loc>
-    <lastmod>2024-10-11</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
 </urlset>
+
