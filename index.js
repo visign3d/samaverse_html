@@ -131,66 +131,32 @@ function escapeHtml(value) {
         .replace(/'/g, '&#039;');
 }
 
-function renderMarkdown(value) {
-    const text = String(value ?? '').trim();
-    if (!text) return '';
+function formatArtworkText(value) {
+    const lines = String(value ?? '').split(/\r?\n/);
+    const isAxisDiagram = /[│┼─↑↓←→]/.test(lines.join('\n'));
 
-    const lines = text.split(/\n/);
-    let html = '';
-    let paragraph = [];
-    let listItems = [];
+    if (isAxisDiagram) {
+        const yAxisLineIndex = lines.findIndex(line => /^\s*y\s*$/i.test(line));
+        const arrowLine = lines.find(line => /^\s*↑\s*$/.test(line));
+        const verticalAxisLine = arrowLine || lines.find(line => /^\s*│\s*$/.test(line));
+        const labelLineIndex = lines.findIndex(line => /ORGANIC.*[│|].*STRUCTURAL/i.test(line));
+        const axisColumn = verticalAxisLine?.search(/\S/) ?? -1;
 
-    const flushParagraph = () => {
-        if (!paragraph.length) return;
-        html += `<p>${paragraph.join('<br>')}</p>`;
-        paragraph = [];
-    };
-
-    const flushList = () => {
-        if (!listItems.length) return;
-        html += `<ul>${listItems.map(item => `<li>${item}</li>`).join('')}</ul>`;
-        listItems = [];
-    };
-
-    const renderInline = (segment) => {
-        let output = escapeHtml(segment);
-        output = output.replace(/`([^`]+)`/g, '<code>$1</code>');
-        output = output.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-        output = output.replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, '<em>$1</em>');
-        output = output.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
-        return output;
-    };
-
-    for (const rawLine of lines) {
-        const line = rawLine.trim();
-
-        const headingMatch = line.match(/^(#{1,6})\s+(.*)$/);
-        if (headingMatch) {
-            flushParagraph();
-            flushList();
-            const level = headingMatch[1].length;
-            html += `<h${level}>${renderInline(headingMatch[2])}</h${level}>`;
-            continue;
+        if (axisColumn >= 0 && yAxisLineIndex >= 0) {
+            lines[yAxisLineIndex] = `${' '.repeat(axisColumn)}y`;
         }
 
-        if (/^[-*]\s+/.test(line)) {
-            flushParagraph();
-            listItems.push(renderInline(line.replace(/^[-*]\s+/, '')));
-            continue;
-        }
-
-        if (!line) {
-            flushParagraph();
-            flushList();
-            continue;
-        }
-
-        paragraph.push(renderInline(line));
     }
 
-    flushParagraph();
-    flushList();
-    return html;
+    return lines.join('\n');
+}
+
+function getArtworkTextColumnCount(value) {
+    return Math.max(1, ...formatArtworkText(value).split('\n').map(line => line.length));
+}
+
+function renderArtworkText(value) {
+    return escapeHtml(formatArtworkText(value)).replace(/ /g, '&nbsp;');
 }
 
 function getFirstDefinedValue(row, keys) {
@@ -392,8 +358,9 @@ function renderUI() {
         const summaryText = d?.description_text || d?.description || art.description || '';
         const materialText = d?.medium || art.medium || 'Theory';
         const isText = isTextArtwork(art);
+        const artworkText = getArtworkTextContent(art);
         const mediaMarkup = isText
-            ? `<div class="absolute inset-0 z-10 flex items-center justify-center p-6 bg-[#111111] text-left"><div class="relative z-30 w-full max-w-[90%] markdown-content font-light leading-[0.82] tracking-[-0.06em] text-white/95 text-2xl sm:text-3xl lg:text-4xl">${renderMarkdown(getArtworkTextContent(art))}</div></div>`
+            ? `<div class="artwork-text-frame absolute inset-0 z-10 flex items-center justify-center p-6 bg-[#111111] text-left"><div class="relative z-30 w-full max-w-[90%] artwork-text-content text-white/95" style="--artwork-columns:${getArtworkTextColumnCount(artworkText)}">${renderArtworkText(artworkText)}</div></div>`
             : `<img src="${art.imageUrl}" alt="${escapeHtml(titleText)}" class="w-full h-full object-cover grayscale-[0.2] group-hover:grayscale-0 transition-all duration-1000" loading="lazy">`;
 
         return `
@@ -585,7 +552,10 @@ function updateSlideshow() {
         img.classList.add('hidden');
         img.style.opacity = '0';
         textDisplay.classList.remove('hidden');
-        if (textNode) textNode.innerHTML = renderMarkdown(contentText);
+        if (textNode) {
+            textNode.style.setProperty('--artwork-columns', getArtworkTextColumnCount(contentText));
+            textNode.innerHTML = renderArtworkText(contentText);
+        }
     } else {
         textDisplay.classList.add('hidden');
         img.classList.remove('hidden');
@@ -594,7 +564,10 @@ function updateSlideshow() {
 
     setTimeout(() => {
         if (isText) {
-            if (textNode) textNode.innerHTML = renderMarkdown(contentText);
+            if (textNode) {
+                textNode.style.setProperty('--artwork-columns', getArtworkTextColumnCount(contentText));
+                textNode.innerHTML = renderArtworkText(contentText);
+            }
             document.getElementById('slideCounter').textContent = `${(currentIndex + 1).toString().padStart(2, '0')} / ${artworks.length.toString().padStart(2, '0')}`;
             document.getElementById('proTitle').textContent = d ? (d.artwork_name || art.title) : art.title;
             document.getElementById('proArtist').textContent = d ? (d.artist || 'Viktor Kadza Jr.') : 'Viktor Kadza Jr.';
