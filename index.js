@@ -300,6 +300,7 @@ async function init() {
         }
 
         artworks = (paintData || [])
+            .filter(row => row.is_published === true) // Filter out unpublished artworks in the public HTML gallery
             .map(row => {
                 const artId = String(getFirstDefinedValue(row, ['id', 'artwork_id']) || '');
                 const medium = normalizeMediumValue(getFirstDefinedValue(row, ['medium']) || 'image');
@@ -775,11 +776,11 @@ function gamepadLoop() {
                 if (rt > 0.1) { currentZoom = Math.min(currentZoom + rt * 0.05, 4); applyZoom(); }
                 if (lt > 0.1) { currentZoom = Math.max(currentZoom - lt * 0.05, 1); applyZoom(); }
                 if (currentZoom > 1) {
-                    const rsX = gp.axes[2];
-                    const rsY = gp.axes[3];
-                    if (Math.abs(rsX) > GAMEPAD_STICK_DEADZONE || Math.abs(rsY) > GAMEPAD_STICK_DEADZONE) {
-                        translateX -= rsX * 20 * currentZoom;
-                        translateY -= rsY * 20 * currentZoom;
+                    const lsX = gp.axes[0];
+                    const lsY = gp.axes[1];
+                    if (Math.abs(lsX) > GAMEPAD_STICK_DEADZONE || Math.abs(lsY) > GAMEPAD_STICK_DEADZONE) {
+                        translateX -= lsX * 20 * currentZoom;
+                        translateY -= lsY * 20 * currentZoom;
                         applyZoom();
                     }
                 }
