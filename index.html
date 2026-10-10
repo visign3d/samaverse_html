@@ -231,6 +231,17 @@
             z-index: 10;
         }
 
+        #featuredContainer.is-selected {
+            border-color: #E60023;
+            box-shadow: 0 0 0 2px #E60023, 0 30px 60px -12px rgba(0, 0, 0, 0.7);
+        }
+
+        .nav-btn-focus {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: #ffffff !important;
+            box-shadow: 0 0 0 2px #E60023;
+        }
+
         .markdown-content {
             word-break: break-word;
         }
@@ -305,6 +316,29 @@
             opacity: 1;
             margin-bottom: 4rem;
         }
+
+        /* Longpress progress style - Circular around shuffle button */
+        #longpressIndicator {
+            position: absolute;
+            inset: 0px;
+            pointer-events: none;
+            display: none;
+            transform: rotate(-90deg);
+            z-index: 10;
+        }
+        #longpressIndicator svg {
+            width: 100%;
+            height: 100%;
+        }
+        #longpressIndicator circle {
+            fill: none;
+            stroke: #E60023;
+            stroke-width: 3;
+            stroke-dasharray: 126; /* 2 * pi * 20 */
+            stroke-dashoffset: 126;
+            stroke-linecap: round;
+            filter: drop-shadow(0 0 5px rgba(230, 0, 35, 0.5));
+        }
     </style>
 </head>
 <body class="antialiased selection:bg-red-600/30">
@@ -319,11 +353,24 @@
                 <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="12" x2="10" y2="12"></line><line x1="8" y1="10" x2="8" y2="14"></line><circle cx="15" cy="13" r="1"></circle><circle cx="18" cy="11" r="1"></circle><rect x="2" y="6" width="20" height="12" rx="2"></rect></svg>
                 CONTROLLER
             </div>
-            <button onclick="randomizeArchive()" class="p-2 hover:bg-white/10 rounded-full text-gray-400 hover:text-white transition-all mr-2" title="Shuffle Archive">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-            </button>
-            <button onclick="showAbout()" class="text-xs font-bold tracking-widest text-gray-400 hover:text-white transition-colors mr-4">ABOUT</button>
-            <button onclick="showContact()" class="text-xs font-bold tracking-widest text-gray-400 hover:text-white transition-colors mr-4">INQUIRE</button>
+            <div class="relative flex items-center justify-center mr-2">
+                <div id="longpressIndicator" class="w-10 h-10">
+                    <svg viewBox="0 0 44 44">
+                        <circle cx="22" cy="22" r="20" />
+                    </svg>
+                </div>
+                <button id="randomizeBtn"
+                        onmouseenter="setNavFocus(-2)"
+                        onclick="randomizeArchive()" class="p-2 hover:bg-white/10 rounded-full text-gray-400 hover:text-white transition-all relative z-20" title="Shuffle Archive">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                </button>
+            </div>
+            <button id="aboutBtn"
+                    onmouseenter="setNavFocus(-3)"
+                    onclick="showAbout()" class="text-xs font-bold tracking-widest text-gray-400 hover:text-white transition-colors mr-4 px-2 py-1 rounded">ABOUT</button>
+            <button id="contactBtn"
+                    onmouseenter="setNavFocus(-4)"
+                    onclick="showContact()" class="text-xs font-bold tracking-widest text-gray-400 hover:text-white transition-colors mr-4 px-2 py-1 rounded">INQUIRE</button>
         </div>
     </nav>
 
@@ -350,7 +397,9 @@
                 <div class="w-12 h-[1px] bg-accent-red"></div>
                 <div class="text-[10px] font-bold text-accent-red tracking-[0.4em] uppercase">Featured Archive Entry</div>
             </div>
-            <div id="featuredContainer" class="relative flex w-full flex-col lg:flex-row min-h-[32rem] lg:min-h-[40rem] bg-[#0a0a0a] rounded-[40px] overflow-hidden border border-white/5 cursor-pointer group hover:border-accent-red/30 transition-all duration-700">
+            <div id="featuredContainer"
+                 onmouseenter="setHeroFocus()"
+                 class="relative flex w-full flex-col lg:flex-row min-h-[32rem] lg:min-h-[40rem] bg-[#0a0a0a] rounded-[40px] overflow-hidden border border-white/5 cursor-pointer group hover:border-accent-red/30 transition-all duration-700">
                 <!-- Content Injected via index.js -->
             </div>
         </section>

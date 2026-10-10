@@ -16,13 +16,19 @@ let translateY = 0;
 const SLIDE_INTERVAL = 8000;
 
 // Home screen selection state
-let selectedGridIndex = 0;
+// -1: Hero, -2: Randomize, -3: About, -4: Inquire, 0..N: Grid
+let selectedGridIndex = -1;
+let heroArtworkIndex = 0;
 
 // Gamepad state
 let gamepadLoopId = null;
 let lastGamepadButtonState = {};
 const GAMEPAD_STICK_DEADZONE = 0.15;
 let isControllerActive = false;
+
+// Longpress state
+let bButtonPressStartTime = null;
+const LONG_PRESS_DURATION = 800;
 
 const restoreMouse = () => {
     if (isControllerActive) {
@@ -340,7 +346,8 @@ async function init() {
             showAbout();
         }
 
-        // Initial grid selection - don't scroll on start
+        // Initial grid selection - start with hero focused
+        selectedGridIndex = -1;
         updateGridFocusUI(false);
     } catch (err) { console.error(err); }
     finally {
@@ -350,8 +357,11 @@ async function init() {
 
 function randomizeArchive() {
     if (!artworks.length) return;
-    // Shuffle the array
-    artworks.sort(() => Math.random() - 0.5);
+    // Fisher-Yates shuffle
+    for (let i = artworks.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [artworks[i], artworks[j]] = [artworks[j], artworks[i]];
+    }
 
     // Smooth transition effect
     const grid = document.getElementById('galleryGrid');
@@ -362,7 +372,7 @@ function randomizeArchive() {
     setTimeout(() => {
         renderFeaturedArtwork();
         renderUI();
-        selectedGridIndex = 0;
+        selectedGridIndex = -1; // Reset to hero
         updateGridFocusUI(false);
         if (grid) grid.style.opacity = '1';
         if (hero) hero.style.opacity = '1';
@@ -376,6 +386,7 @@ function renderFeaturedArtwork() {
 
     const art = artworks[Math.floor(Math.random() * artworks.length)];
     const idx = artworks.indexOf(art);
+    heroArtworkIndex = idx;
 
     const d = getArtworkDetails(art);
     const titleText = d?.artwork_name || art.title || 'Untitled';
@@ -400,7 +411,7 @@ function renderFeaturedArtwork() {
         <div class="relative z-10 w-full lg:w-[28rem] shrink-0 p-8 sm:p-12 flex flex-col justify-center bg-gradient-to-br from-black/90 via-black/70 to-[#0a0a0a]">
             <span class="text-xs font-black text-accent-red tracking-[0.5em] uppercase mb-6 animate-pulse">${artistText}</span>
             <h2 class="text-5xl lg:text-7xl font-extralight text-white tracking-tighter mb-8 leading-[1.1]">${titleText}</h2>
-            <p class="text-lg text-gray-300 font-light leading-relaxed italic mb-10">${escapeHtml(summaryText)}</p>
+            <p class="text-lg text-gray-300 font-light leading-relaxed italic mb-10 line-clamp-3">${escapeHtml(summaryText)}</p>
             <div class="flex items-center gap-8">
                 <div class="text-[10px] font-mono text-gray-500 uppercase tracking-[0.3em]">${dateYear ? dateYear + ' / ' : ''}${materialText}</div>
                 <div class="h-[1px] w-12 bg-white/20"></div>
@@ -813,11 +824,78 @@ function gamepadLoop() {
 
         const modal = document.getElementById('slideshowModal');
         const isVisible = modal && !modal.classList.contains('hidden');
+        const aboutModal = document.getElementById('aboutModal');
+        const contactModal = document.getElementById('contactModal');
+
+        // B Button Logic (Release / Short Press)
+        const bButton = gp.buttons[1];
+        const indicator = document.getElementById('longpressIndicator');
+        const indicatorCircle = indicator ? indicator.querySelector('circle') : null;
+
+        if (bButton.pressed) {
+            if (bButtonPressStartTime === null) {
+                bButtonPressStartTime = performance.now();
+                if (indicator) indicator.style.display = 'block';
+            }
+
+            const elapsed = performance.now() - bButtonPressStartTime;
+            const progress = Math.min((elapsed / LONG_PRESS_DURATION), 1);
+
+            // Circumference is 126
+            if (indicatorCircle) {
+                indicatorCircle.style.strokeDashoffset = 126 - (progress * 126);
+            }
+
+            if (elapsed >= LONG_PRESS_DURATION && bButtonPressStartTime !== Infinity) {
+                randomizeArchive();
+                bButtonPressStartTime = Infinity; // Block until release
+                if (indicator) indicator.style.display = 'none';
+                if (indicatorCircle) indicatorCircle.style.strokeDashoffset = 126;
+            }
+        } else {
+            if (bButtonPressStartTime !== null) {
+                // If it wasn't a longpress, trigger normal B action
+                if (bButtonPressStartTime !== Infinity && (performance.now() - bButtonPressStartTime < LONG_PRESS_DURATION)) {
+                    // EXIT MODALS logic
+                    if (aboutModal && !aboutModal.classList.contains('hidden')) {
+                        closeAbout();
+                    } else if (contactModal && !contactModal.classList.contains('hidden')) {
+                        closeContact();
+                    } else if (isVisible) {
+                        if (currentZoom > 1) resetZoom(); else closeSlideshow();
+                    } else {
+                        // Home screen focus reset
+                        if (selectedGridIndex !== -1) {
+                            selectedGridIndex = -1;
+                            updateGridFocusUI();
+                        }
+                    }
+                }
+                bButtonPressStartTime = null;
+                if (indicator) indicator.style.display = 'none';
+                if (indicatorCircle) indicatorCircle.style.strokeDashoffset = 126;
+            }
+        }
+
+        // RS Vertical Axis Scrolling (Axis 3)
+        const rsY = gp.axes[3];
+        if (Math.abs(rsY) > GAMEPAD_STICK_DEADZONE) {
+            const scrollAmount = rsY * 25; // Speed multiplier
+            const proMetaPanel = document.getElementById('proMetaPanel');
+
+            if (aboutModal && !aboutModal.classList.contains('hidden')) {
+                aboutModal.scrollBy(0, scrollAmount);
+            } else if (isVisible && proMetaPanel) {
+                proMetaPanel.scrollBy(0, scrollAmount);
+            } else if (!isVisible) {
+                window.scrollBy(0, scrollAmount);
+            }
+        }
 
         if (isVisible) {
             // Slideshow Mode Controls
             handleGamepadButton(gp, 0, togglePlayPause); // A
-            handleGamepadButton(gp, 1, () => { if (currentZoom > 1) resetZoom(); else closeSlideshow(); }); // B
+            // handleGamepadButton(gp, 1, ...); // Handled above for longpress
             handleGamepadButton(gp, 2, toggleFocusMode); // X
             handleGamepadButton(gp, 3, toggleFullscreen); // Y
             handleGamepadButton(gp, 4, prevSlide); // LB
@@ -840,12 +918,14 @@ function gamepadLoop() {
                 const rt = gp.buttons[7].value;
                 if (rt > 0.1) { currentZoom = Math.min(currentZoom + rt * 0.05, 4); applyZoom(); }
                 if (lt > 0.1) { currentZoom = Math.max(currentZoom - lt * 0.05, 1); applyZoom(); }
+
+                // Pan with Right Stick (Axes 2 & 3)
                 if (currentZoom > 1) {
-                    const lsX = gp.axes[0];
-                    const lsY = gp.axes[1];
-                    if (Math.abs(lsX) > GAMEPAD_STICK_DEADZONE || Math.abs(lsY) > GAMEPAD_STICK_DEADZONE) {
-                        translateX -= lsX * 20 * currentZoom;
-                        translateY -= lsY * 20 * currentZoom;
+                    const rsX_pan = gp.axes[2];
+                    const rsY_pan = gp.axes[3];
+                    if (Math.abs(rsX_pan) > GAMEPAD_STICK_DEADZONE || Math.abs(rsY_pan) > GAMEPAD_STICK_DEADZONE) {
+                        translateX -= rsX_pan * 20 * currentZoom;
+                        translateY -= rsY_pan * 20 * currentZoom;
                         applyZoom();
                     }
                 }
@@ -854,7 +934,13 @@ function gamepadLoop() {
             // Home Screen Mode Controls
             // A: Select card
             handleGamepadButton(gp, 0, () => {
-                if (artworks.length > 0) openSlideshow(selectedGridIndex);
+                if (artworks.length > 0) {
+                    if (selectedGridIndex === -1) openSlideshow(heroArtworkIndex);
+                    else if (selectedGridIndex === -2) randomizeArchive();
+                    else if (selectedGridIndex === -3) showAbout();
+                    else if (selectedGridIndex === -4) showContact();
+                    else openSlideshow(selectedGridIndex);
+                }
             });
 
             // LB / RB: Navigation
@@ -902,6 +988,18 @@ function handleGamepadButton(gp, index, callback) {
     }
 }
 
+function setHeroFocus() {
+    if (isControllerActive) return;
+    selectedGridIndex = -1;
+    updateGridFocusUI(false);
+}
+
+function setNavFocus(index) {
+    if (isControllerActive) return;
+    selectedGridIndex = index;
+    updateGridFocusUI(false);
+}
+
 function setGridFocus(index) {
     if (isControllerActive) return;
     selectedGridIndex = index;
@@ -910,18 +1008,49 @@ function setGridFocus(index) {
 
 function moveGridFocus(delta) {
     if (artworks.length === 0) return;
-    selectedGridIndex = (selectedGridIndex + delta + artworks.length) % artworks.length;
+
+    if (selectedGridIndex === -2 || selectedGridIndex === -3 || selectedGridIndex === -4) {
+        // Navigating header buttons horizontally
+        if (delta > 0) {
+            if (selectedGridIndex === -2) selectedGridIndex = -3;
+            else if (selectedGridIndex === -3) selectedGridIndex = -4;
+            else if (selectedGridIndex === -4) selectedGridIndex = -2;
+        } else {
+            if (selectedGridIndex === -2) selectedGridIndex = -4;
+            else if (selectedGridIndex === -4) selectedGridIndex = -3;
+            else if (selectedGridIndex === -3) selectedGridIndex = -2;
+        }
+    } else if (selectedGridIndex === -1) {
+        if (delta > 0) selectedGridIndex = 0;
+        else selectedGridIndex = artworks.length - 1;
+    } else {
+        selectedGridIndex = (selectedGridIndex + delta + artworks.length) % artworks.length;
+        // Wrapping from last back to hero?
+        if (delta > 0 && selectedGridIndex === 0) selectedGridIndex = -1;
+        else if (delta < 0 && selectedGridIndex === artworks.length - 1) selectedGridIndex = -1;
+    }
     updateGridFocusUI();
 }
 
 function moveGridFocusVertical(delta) {
     if (artworks.length === 0) return;
     const cols = getGridColumns();
-    let newIndex = selectedGridIndex + (delta * cols);
-    if (newIndex >= 0 && newIndex < artworks.length) {
-        selectedGridIndex = newIndex;
-        updateGridFocusUI();
+
+    if (selectedGridIndex === -2 || selectedGridIndex === -3 || selectedGridIndex === -4) {
+        // Down from nav goes to Hero
+        if (delta > 0) selectedGridIndex = -1;
+    } else if (selectedGridIndex === -1) {
+        if (delta > 0) selectedGridIndex = 0;
+        else selectedGridIndex = -2; // Up from Hero goes to Nav
+    } else {
+        let newIndex = selectedGridIndex + (delta * cols);
+        if (newIndex < 0) {
+            selectedGridIndex = -1; // Go to hero
+        } else if (newIndex < artworks.length) {
+            selectedGridIndex = newIndex;
+        }
     }
+    updateGridFocusUI();
 }
 
 function getGridColumns() {
@@ -941,11 +1070,33 @@ function getGridColumns() {
 
 function updateGridFocusUI(shouldScroll = true) {
     document.querySelectorAll('.artwork-grid-item').forEach(el => el.classList.remove('is-selected'));
-    const active = document.getElementById(`grid-item-${selectedGridIndex}`);
-    if (active) {
-        active.classList.add('is-selected');
-        if (shouldScroll) {
-            active.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+    const hero = document.getElementById('featuredContainer');
+    const randomizeBtn = document.getElementById('randomizeBtn');
+    const aboutBtn = document.getElementById('aboutBtn');
+    const contactBtn = document.getElementById('contactBtn');
+
+    if (hero) hero.classList.remove('is-selected');
+    if (randomizeBtn) randomizeBtn.classList.remove('nav-btn-focus');
+    if (aboutBtn) aboutBtn.classList.remove('nav-btn-focus');
+    if (contactBtn) contactBtn.classList.remove('nav-btn-focus');
+
+    if (selectedGridIndex === -1) {
+        if (hero) {
+            hero.classList.add('is-selected');
+            if (shouldScroll) hero.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    } else if (selectedGridIndex === -2) {
+        if (randomizeBtn) randomizeBtn.classList.add('nav-btn-focus');
+    } else if (selectedGridIndex === -3) {
+        if (aboutBtn) aboutBtn.classList.add('nav-btn-focus');
+    } else if (selectedGridIndex === -4) {
+        if (contactBtn) contactBtn.classList.add('nav-btn-focus');
+    } else {
+        const active = document.getElementById(`grid-item-${selectedGridIndex}`);
+        if (active) {
+            active.classList.add('is-selected');
+            if (shouldScroll) active.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
     }
 }
@@ -965,7 +1116,14 @@ window.addEventListener('keydown', (e) => {
     }
 
     if (!modal || modal.classList.contains('hidden')) {
-        if (e.key === 'Enter' && artworks.length > 0) openSlideshow(selectedGridIndex);
+        if (e.key.toLowerCase() === 'r') randomizeArchive();
+        if (e.key === 'Enter' && artworks.length > 0) {
+            if (selectedGridIndex === -1) openSlideshow(heroArtworkIndex);
+            else if (selectedGridIndex === -2) randomizeArchive();
+            else if (selectedGridIndex === -3) showAbout();
+            else if (selectedGridIndex === -4) showContact();
+            else openSlideshow(selectedGridIndex);
+        }
         if (e.key === 'ArrowRight') moveGridFocus(1);
         if (e.key === 'ArrowLeft') moveGridFocus(-1);
         if (e.key === 'ArrowUp') moveGridFocusVertical(-1);
