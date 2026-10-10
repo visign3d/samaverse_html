@@ -348,6 +348,27 @@ async function init() {
     }
 }
 
+function randomizeArchive() {
+    if (!artworks.length) return;
+    // Shuffle the array
+    artworks.sort(() => Math.random() - 0.5);
+
+    // Smooth transition effect
+    const grid = document.getElementById('galleryGrid');
+    const hero = document.getElementById('featuredContainer');
+    if (grid) grid.style.opacity = '0';
+    if (hero) hero.style.opacity = '0';
+
+    setTimeout(() => {
+        renderFeaturedArtwork();
+        renderUI();
+        selectedGridIndex = 0;
+        updateGridFocusUI(false);
+        if (grid) grid.style.opacity = '1';
+        if (hero) hero.style.opacity = '1';
+    }, 300);
+}
+
 function renderFeaturedArtwork() {
     const featuredSection = document.getElementById('featuredSection');
     const container = document.getElementById('featuredContainer');
