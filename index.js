@@ -329,6 +329,7 @@ async function init() {
         }
 
         artworks.sort(() => Math.random() - 0.5);
+        renderFeaturedArtwork();
         renderUI();
         restoreSlideshowState();
         initPanHandlers();
@@ -345,6 +346,49 @@ async function init() {
     finally {
         if (loading) loading.classList.add('hidden');
     }
+}
+
+function renderFeaturedArtwork() {
+    const featuredSection = document.getElementById('featuredSection');
+    const container = document.getElementById('featuredContainer');
+    if (!featuredSection || !container || !artworks.length) return;
+
+    const art = artworks[Math.floor(Math.random() * artworks.length)];
+    const idx = artworks.indexOf(art);
+
+    const d = getArtworkDetails(art);
+    const titleText = d?.artwork_name || art.title || 'Untitled';
+    const artistText = d?.artist || art.artist || 'SAMACORP';
+    const summaryText = d?.description_text || d?.description || art.description || '';
+    const dateYear = d?.made_date ? new Date(d.made_date).getFullYear() : '';
+    const materialText = d?.medium || art.medium || 'Theory';
+    const isText = isTextArtwork(art);
+    const artworkText = getArtworkTextContent(art);
+    const previewMarkup = isText
+        ? `<div class="artwork-text-frame relative flex flex-1 min-w-0 min-h-[32rem] items-center justify-center p-6 sm:p-10 bg-[#111111] text-left">
+               <div class="relative z-10 w-full max-w-[90%] artwork-text-content text-white/95" style="--artwork-columns:${getArtworkTextColumnCount(artworkText)}">${renderArtworkText(artworkText)}</div>
+           </div>`
+        : `<div class="flex flex-1 min-w-0 min-h-[24rem] lg:min-h-[40rem] items-center justify-center bg-black/40 p-4 sm:p-8">
+               <img src="${art.imageUrl}" alt="${escapeHtml(titleText)}" class="max-h-[40rem] max-w-full object-contain brightness-[0.7] group-hover:brightness-[0.9] transition-[filter] duration-700">
+           </div>`;
+
+    container.onclick = () => openSlideshow(idx);
+
+    container.innerHTML = `
+        ${previewMarkup}
+        <div class="relative z-10 w-full lg:w-[28rem] shrink-0 p-8 sm:p-12 flex flex-col justify-center bg-gradient-to-br from-black/90 via-black/70 to-[#0a0a0a]">
+            <span class="text-xs font-black text-accent-red tracking-[0.5em] uppercase mb-6 animate-pulse">${artistText}</span>
+            <h2 class="text-5xl lg:text-7xl font-extralight text-white tracking-tighter mb-8 leading-[1.1]">${titleText}</h2>
+            <p class="text-lg text-gray-300 font-light leading-relaxed italic mb-10">${escapeHtml(summaryText)}</p>
+            <div class="flex items-center gap-8">
+                <div class="text-[10px] font-mono text-gray-500 uppercase tracking-[0.3em]">${dateYear ? dateYear + ' / ' : ''}${materialText}</div>
+                <div class="h-[1px] w-12 bg-white/20"></div>
+                <div class="text-[9px] font-bold text-white tracking-[0.2em] uppercase opacity-0 group-hover:opacity-100 transition-opacity">Enter Archive &rarr;</div>
+            </div>
+        </div>
+    `;
+
+    featuredSection.classList.remove('hidden');
 }
 
 function renderUI() {
