@@ -35,6 +35,26 @@
             overflow-x: hidden;
         }
 
+        /* Custom scrollbar styles */
+        ::-webkit-scrollbar {
+            width: 1px;
+            height: 1px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #050505;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #222;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #E60023;
+        }
+        /* For Firefox */
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: #222 #050505;
+        }
+
         body.controller-active * {
             pointer-events: none !important;
         }
@@ -140,10 +160,13 @@
         }
 
         .thumb-strip {
-            scrollbar-width: none;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(230, 0, 35, 0.65) rgba(255, 255, 255, 0.05);
             -ms-overflow-style: none;
         }
-        .thumb-strip::-webkit-scrollbar { display: none; }
+        .thumb-strip::-webkit-scrollbar { height: 1px; }
+        .thumb-strip::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.05); }
+        .thumb-strip::-webkit-scrollbar-thumb { background: rgba(230, 0, 35, 0.65); }
 
         .thumb-item {
             transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -329,7 +352,7 @@
         </section>
 
         <!-- FULL ARCHIVE SECTION HEADER -->
-        <section class="pt-[50px] mb-20">
+        <section class="mt-60 pt-[50px] mb-20">
             <div class="flex items-center gap-4 mb-12">
                 <div class="w-12 h-[1px] bg-accent-red"></div>
                 <div class="text-[10px] font-bold text-accent-red tracking-[0.4em] uppercase">Full Archive Entry</div>
