@@ -19,6 +19,7 @@ const SLIDE_INTERVAL = 8000;
 // -1: Hero, -2: Randomize, -3: About, -4: Inquire, 0..N: Grid
 let selectedGridIndex = -1;
 let heroArtworkIndex = 0;
+let gridFocusScrollTimer = null;
 
 // Gamepad state
 let gamepadLoopId = null;
@@ -1100,6 +1101,62 @@ function updateGridFocusUI(shouldScroll = true) {
         }
     }
 }
+
+function isGridFocusElementVisible(element) {
+    if (!element) return false;
+
+    const rect = element.getBoundingClientRect();
+    return rect.bottom > 0 && rect.top < window.innerHeight &&
+        rect.right > 0 && rect.left < window.innerWidth;
+}
+
+function moveGridFocusToVisibleElement() {
+    if (selectedGridIndex <= -2) return;
+
+    const selected = selectedGridIndex === -1
+        ? document.getElementById('featuredContainer')
+        : document.getElementById(`grid-item-${selectedGridIndex}`);
+    if (isGridFocusElementVisible(selected)) return;
+
+    const viewportCenterX = window.innerWidth / 2;
+    const viewportCenterY = window.innerHeight / 2;
+    const candidates = Array.from(document.querySelectorAll('.artwork-grid-item'))
+        .map(element => {
+            const rect = element.getBoundingClientRect();
+            if (rect.bottom <= 0 || rect.top >= window.innerHeight ||
+                rect.right <= 0 || rect.left >= window.innerWidth) return null;
+
+            const index = Number(element.id.replace('grid-item-', ''));
+            const distance = Math.hypot(
+                (rect.left + rect.width / 2) - viewportCenterX,
+                (rect.top + rect.height / 2) - viewportCenterY
+            );
+            return { index, distance };
+        })
+        .filter(Boolean);
+
+    const hero = document.getElementById('featuredContainer');
+    if (isGridFocusElementVisible(hero)) {
+        const rect = hero.getBoundingClientRect();
+        candidates.push({
+            index: -1,
+            distance: Math.hypot(
+                (rect.left + rect.width / 2) - viewportCenterX,
+                (rect.top + rect.height / 2) - viewportCenterY
+            )
+        });
+    }
+
+    if (!candidates.length) return;
+    candidates.sort((a, b) => a.distance - b.distance);
+    selectedGridIndex = candidates[0].index;
+    updateGridFocusUI(false);
+}
+
+window.addEventListener('scroll', () => {
+    clearTimeout(gridFocusScrollTimer);
+    gridFocusScrollTimer = setTimeout(moveGridFocusToVisibleElement, 150);
+}, { passive: true });
 
 init();
 
